@@ -1,4 +1,5 @@
 import React from 'react';
+import { useAuth } from '../context/AuthContext';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -7,6 +8,12 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ onMenuClick, darkMode = false, onDarkModeToggle }) => {
+  const { admin, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+  };
+
   return (
     <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-colors duration-200">
       <div className="flex items-center justify-between h-16 px-4 lg:px-6">
@@ -63,9 +70,21 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, darkMode = false, onDarkMo
               👤
             </div>
             <div className="hidden md:block">
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-200">Admin User</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Administrator</p>
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                {admin?.username || 'Admin User'}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {admin?.email || 'admin@example.com'}
+              </p>
             </div>
+            {/* Logout button */}
+            <button
+              onClick={handleLogout}
+              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+              title="Logout"
+            >
+              🚪
+            </button>
           </div>
         </div>
       </div>
