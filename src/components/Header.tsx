@@ -8,7 +8,7 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ onMenuClick, darkMode = false, onDarkModeToggle }) => {
-  const { admin, logout } = useAuth();
+  const { user, logout } = useAuth();
 
   const handleLogout = () => {
     logout();
@@ -71,10 +71,10 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, darkMode = false, onDarkMo
             </div>
             <div className="hidden md:block">
               <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                {admin?.username || 'Admin User'}
+                {user ? `${user.firstName} ${user.lastName}` : 'User'}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                {admin?.email || 'admin@example.com'}
+                {user?.email || 'user@example.com'}
               </p>
             </div>
             {/* Logout button */}

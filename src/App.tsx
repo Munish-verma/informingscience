@@ -4,9 +4,14 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
 import Login from './components/Login';
+import UserDashboard from './components/UserDashboard';
+import ReviewerDashboard from './components/ReviewerDashboard';
+import EditorDashboard from './components/EditorDashboard';
+import EditorInChiefDashboard from './components/EditorInChiefDashboard';
+import AdminDashboard from './components/AdminDashboard';
 
 const AppContent: React.FC = () => {
-  const { isAuthenticated, login, loading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
 
@@ -34,21 +39,53 @@ const AppContent: React.FC = () => {
     localStorage.setItem('darkMode', JSON.stringify(darkMode));
   }, [darkMode]);
 
-  const handleLogin = (token: string, admin: any) => {
-    login(token, admin);
-  };
-
-  if (loading) {
+  // Show loading spinner while checking authentication
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
       </div>
     );
   }
 
+  // Show login page if not authenticated
   if (!isAuthenticated) {
-    return <Login onLogin={handleLogin} />;
+    return <Login />;
   }
+
+  // Determine which dashboard to show based on user roles
+  const getDashboardComponent = () => {
+    if (!user) return <Dashboard />;
+
+    // Check for admin roles first
+    if (user.roles?.includes('super-admin')) {
+      return <AdminDashboard />;
+    }
+    
+    if (user.roles?.includes('administrator')) {
+      return <AdminDashboard />;
+    }
+
+    // Check for editorial roles
+    if (user.roles?.includes('editor-in-chief')) {
+      return <EditorInChiefDashboard />;
+    }
+
+    if (user.roles?.includes('editor')) {
+      return <EditorDashboard />;
+    }
+
+    // Check for reviewer role
+    if (user.roles?.includes('reviewer') || user.isReviewer) {
+      return <ReviewerDashboard />;
+    }
+
+    // Default to user dashboard for colleagues and members
+    return <UserDashboard />;
+  };
 
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-200">
@@ -60,7 +97,7 @@ const AppContent: React.FC = () => {
           onDarkModeToggle={() => setDarkMode(!darkMode)}
         />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900">
-          <Dashboard />
+          {getDashboardComponent()}
         </main>
       </div>
     </div>
