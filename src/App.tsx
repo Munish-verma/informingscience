@@ -1,17 +1,40 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
 import Login from './components/Login';
-import UserDashboard from './components/UserDashboard';
-import ReviewerDashboard from './components/ReviewerDashboard';
-import EditorDashboard from './components/EditorDashboard';
-import EditorInChiefDashboard from './components/EditorInChiefDashboard';
-import AdminDashboard from './components/AdminDashboard';
+import HomePage from './pages/HomePage';
+import AboutPage from './pages/AboutPage';
+import CallForPapersPage from './pages/CallForPapersPage';
+import PublicationsPage from './pages/PublicationsPage';
+import JournalsPage from './pages/JournalsPage';
+import ConferencesPage from './pages/ConferencesPage';
+import CommunityPage from './pages/CommunityPage';
+import ContactPage from './pages/ContactPage';
+import FAQPage from './pages/FAQPage';
+import ISIVideosPage from './pages/ISIVideosPage';
+import MentorshipPage from './pages/MentorshipPage';
+import SecondActPage from './pages/SecondActPage';
+import SponsorUsPage from './pages/SponsorUsPage';
+import AdvertisePage from './pages/AdvertisePage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import EthicsPolicyPage from './pages/EthicsPolicyPage';
+import LegalDisclaimerPage from './pages/LegalDisclaimerPage';
+import SiteMapPage from './pages/SiteMapPage';
+import JoinISIPage from './pages/JoinISIPage';
+import ProfileEditPage from './pages/ProfileEditPage';
+import MemberDashboardPage from './pages/MemberDashboardPage';
+import YourArticlesPage from './pages/YourArticlesPage';
+import YourReviewsPage from './pages/YourReviewsPage';
+import NotificationsPage from './pages/NotificationsPage';
+import PeerDirectoryPage from './pages/PeerDirectoryPage';
+import MemberConferencesPage from './pages/MemberConferencesPage';
+import MembershipOptionsPage from './pages/MembershipOptionsPage';
 
-const AppContent: React.FC = () => {
-  const { isAuthenticated, isLoading, user } = useAuth();
+const AdminDashboard: React.FC = () => {
+  const { isAuthenticated, login, loading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
 
@@ -39,53 +62,21 @@ const AppContent: React.FC = () => {
     localStorage.setItem('darkMode', JSON.stringify(darkMode));
   }, [darkMode]);
 
-  // Show loading spinner while checking authentication
-  if (isLoading) {
+  const handleLogin = (token: string, admin: any) => {
+    login(token, admin);
+  };
+
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
-        </div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
-  // Show login page if not authenticated
   if (!isAuthenticated) {
-    return <Login />;
+    return <Login onLogin={handleLogin} />;
   }
-
-  // Determine which dashboard to show based on user roles
-  const getDashboardComponent = () => {
-    if (!user) return <Dashboard />;
-
-    // Check for admin roles first
-    if (user.roles?.includes('super-admin')) {
-      return <AdminDashboard />;
-    }
-    
-    if (user.roles?.includes('administrator')) {
-      return <AdminDashboard />;
-    }
-
-    // Check for editorial roles
-    if (user.roles?.includes('editor-in-chief')) {
-      return <EditorInChiefDashboard />;
-    }
-
-    if (user.roles?.includes('editor')) {
-      return <EditorDashboard />;
-    }
-
-    // Check for reviewer role
-    if (user.roles?.includes('reviewer') || user.isReviewer) {
-      return <ReviewerDashboard />;
-    }
-
-    // Default to user dashboard for colleagues and members
-    return <UserDashboard />;
-  };
 
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-200">
@@ -97,7 +88,7 @@ const AppContent: React.FC = () => {
           onDarkModeToggle={() => setDarkMode(!darkMode)}
         />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900">
-          {getDashboardComponent()}
+          <Dashboard />
         </main>
       </div>
     </div>
@@ -106,9 +97,40 @@ const AppContent: React.FC = () => {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <Router>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/call-for-papers" element={<CallForPapersPage />} />
+          <Route path="/publications" element={<PublicationsPage />} />
+          <Route path="/journals" element={<JournalsPage />} />
+          <Route path="/conferences" element={<ConferencesPage />} />
+          <Route path="/community" element={<CommunityPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/faq" element={<FAQPage />} />
+          <Route path="/isi-videos" element={<ISIVideosPage />} />
+          <Route path="/mentorship" element={<MentorshipPage />} />
+          <Route path="/second-act" element={<SecondActPage />} />
+          <Route path="/sponsor-us" element={<SponsorUsPage />} />
+          <Route path="/advertise" element={<AdvertisePage />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+          <Route path="/ethics-policy" element={<EthicsPolicyPage />} />
+          <Route path="/legal-disclaimer" element={<LegalDisclaimerPage />} />
+          <Route path="/site-map" element={<SiteMapPage />} />
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/join-isi" element={<JoinISIPage />} />
+          <Route path="/profile-edit" element={<ProfileEditPage />} />
+          <Route path="/member/dashboard" element={<MemberDashboardPage />} />
+          <Route path="/member/articles" element={<YourArticlesPage />} />
+          <Route path="/member/reviews" element={<YourReviewsPage />} />
+          <Route path="/member/notifications" element={<NotificationsPage />} />
+          <Route path="/member/peer-directory" element={<PeerDirectoryPage />} />
+          <Route path="/member/conferences" element={<MemberConferencesPage />} />
+          <Route path="/member/membership-options" element={<MembershipOptionsPage />} />
+        </Routes>
+      </AuthProvider>
+    </Router>
   );
 }
 
