@@ -12,7 +12,7 @@ Start-Sleep -Seconds 5
 
 Write-Host "Step 3: Testing server health..." -ForegroundColor Yellow
 try {
-    $response = Invoke-WebRequest -Uri "http://localhost:5000/api/health" -UseBasicParsing
+    $response = Invoke-WebRequest -Uri "http://localhost:3000/api/health" -UseBasicParsing
     Write-Host "Server is running: $($response.Content)" -ForegroundColor Green
 } catch {
     Write-Host "Server health check failed: $($_.Exception.Message)" -ForegroundColor Red
@@ -26,7 +26,7 @@ try {
         password = "admin123"
     } | ConvertTo-Json
 
-    $response = Invoke-WebRequest -Uri "http://localhost:5000/api/admin/login" -Method POST -Headers @{"Content-Type"="application/json"} -Body $body -UseBasicParsing
+    $response = Invoke-WebRequest -Uri "http://localhost:3000/api/admin/login" -Method POST -Headers @{"Content-Type"="application/json"} -Body $body -UseBasicParsing
     Write-Host "Login test successful: $($response.Content)" -ForegroundColor Green
 } catch {
     Write-Host "Login test failed: $($_.Exception.Message)" -ForegroundColor Red

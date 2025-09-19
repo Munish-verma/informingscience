@@ -1,106 +1,125 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import Sidebar from './components/Sidebar';
-import Header from './components/Header';
+import Layout from './components/Layout';
+import ProtectedRoute from './components/ProtectedRoute';
+import LoginPage from './components/LoginPage';
 import Dashboard from './components/Dashboard';
-import Login from './components/Login';
 import UserDashboard from './components/UserDashboard';
 import ReviewerDashboard from './components/ReviewerDashboard';
 import EditorDashboard from './components/EditorDashboard';
 import EditorInChiefDashboard from './components/EditorInChiefDashboard';
 import AdminDashboard from './components/AdminDashboard';
+import AdminLayout from './components/AdminLayout';
+import UserManagement from './components/admin/UserManagement';
+import JournalConferenceManagement from './components/admin/JournalConferenceManagement';
+import ContentManagement from './components/admin/ContentManagement';
+import EmailTemplateManagement from './components/admin/EmailTemplateManagement';
+import SystemConfiguration from './components/admin/SystemConfiguration';
+import AnalyticsReports from './components/admin/AnalyticsReports';
+import DataBackupExport from './components/admin/DataBackupExport';
+import Profile from './components/Profile';
+import Publications from './components/Publications';
+import Community from './components/Community';
 
 const AppContent: React.FC = () => {
-  const { isAuthenticated, isLoading, user } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const { isAuthenticated, user } = useAuth();
 
-  useEffect(() => {
-    // Check for saved dark mode preference or default to system preference
-    const savedDarkMode = localStorage.getItem('darkMode');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
-    if (savedDarkMode !== null) {
-      setDarkMode(JSON.parse(savedDarkMode));
-    } else {
-      setDarkMode(prefersDark);
-    }
-  }, []);
-
-  useEffect(() => {
-    // Apply dark mode class to document
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    
-    // Save preference to localStorage
-    localStorage.setItem('darkMode', JSON.stringify(darkMode));
-  }, [darkMode]);
-
-  // Show loading spinner while checking authentication
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show login page if not authenticated
-  if (!isAuthenticated) {
-    return <Login />;
-  }
-
-  // Determine which dashboard to show based on user roles
-  const getDashboardComponent = () => {
-    if (!user) return <Dashboard />;
+  // Default redirect based on user role
+  const getDefaultRoute = () => {
+    if (!user) return '/dashboard';
 
     // Check for admin roles first
-    if (user.roles?.includes('super-admin')) {
-      return <AdminDashboard />;
-    }
-    
-    if (user.roles?.includes('administrator')) {
-      return <AdminDashboard />;
+    if (user.roles?.includes('super-admin') || user.roles?.includes('administrator')) {
+      return '/admin-dashboard';
     }
 
     // Check for editorial roles
     if (user.roles?.includes('editor-in-chief')) {
-      return <EditorInChiefDashboard />;
+      return '/editor-in-chief-dashboard';
     }
 
     if (user.roles?.includes('editor')) {
-      return <EditorDashboard />;
+      return '/editor-dashboard';
     }
 
     // Check for reviewer role
     if (user.roles?.includes('reviewer') || user.isReviewer) {
-      return <ReviewerDashboard />;
+      return '/reviewer-dashboard';
     }
 
     // Default to user dashboard for colleagues and members
-    return <UserDashboard />;
+    return '/dashboard';
   };
 
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-200">
-      <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header 
-          onMenuClick={() => setSidebarOpen(!sidebarOpen)} 
-          darkMode={darkMode}
-          onDarkModeToggle={() => setDarkMode(!darkMode)}
+    <Router>
+      <Routes>
+        {/* Public routes */}
+        <Route 
+          path="/login" 
+          element={
+            isAuthenticated ? (
+              <Navigate to={getDefaultRoute()} replace />
+            ) : (
+              <LoginPage />
+            )
+          } 
         />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900">
-          {getDashboardComponent()}
-        </main>
-      </div>
-    </div>
+
+        {/* Admin routes with AdminLayout (separate from main layout) */}
+        <Route path="/admin-dashboard" element={
+          <ProtectedRoute requiredRoles={['super-admin', 'administrator']}>
+            <AdminLayout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<AdminDashboard />} />
+          <Route path="users" element={<UserManagement />} />
+          <Route path="journals" element={<JournalConferenceManagement />} />
+          <Route path="content" element={<ContentManagement />} />
+          <Route path="email-templates" element={<EmailTemplateManagement />} />
+          <Route path="system-config" element={<SystemConfiguration />} />
+          <Route path="analytics" element={<AnalyticsReports />} />
+          <Route path="backup" element={<DataBackupExport />} />
+        </Route>
+
+        {/* Protected routes with main layout */}
+        <Route path="/" element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }>
+          {/* Default redirect */}
+          <Route index element={<Navigate to={getDefaultRoute()} replace />} />
+          
+          {/* Dashboard routes */}
+          <Route path="dashboard" element={<UserDashboard />} />
+          <Route path="editor-in-chief-dashboard" element={
+            <ProtectedRoute requiredRoles={['editor-in-chief']}>
+              <EditorInChiefDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="editor-dashboard" element={
+            <ProtectedRoute requiredRoles={['editor']}>
+              <EditorDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="reviewer-dashboard" element={
+            <ProtectedRoute requiredRoles={['reviewer']}>
+              <ReviewerDashboard />
+            </ProtectedRoute>
+          } />
+          
+          {/* Common routes for all authenticated users */}
+          <Route path="profile" element={<Profile />} />
+          <Route path="publications" element={<Publications />} />
+          <Route path="community" element={<Community />} />
+        </Route>
+
+        {/* Catch all route */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
   );
 };
 
@@ -113,4 +132,3 @@ function App() {
 }
 
 export default App;
-

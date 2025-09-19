@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Users, FileText, Settings, BarChart3, Shield, Database } from 'lucide-react';
+import { Users, FileText, Settings, BarChart3, Shield, Database, Mail } from 'lucide-react';
 
 interface SystemStats {
   totalUsers: number;
@@ -13,6 +14,7 @@ interface SystemStats {
 
 const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [systemStats, setSystemStats] = useState<SystemStats>({
     totalUsers: 1250,
     totalSubmissions: 450,
@@ -24,7 +26,7 @@ const AdminDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   return (
-    <div className="p-6">
+    <div>
       {/* Welcome Section */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
@@ -196,7 +198,10 @@ const AdminDashboard: React.FC = () => {
           Quick Actions
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <button className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left">
+          <button 
+            onClick={() => navigate('/admin-dashboard/users')}
+            className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
+          >
             <Users className="h-6 w-6 text-blue-600 dark:text-blue-400 mb-2" />
             <h3 className="font-medium text-gray-900 dark:text-white">User Management</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -204,27 +209,69 @@ const AdminDashboard: React.FC = () => {
             </p>
           </button>
           
-          <button className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left">
+          <button 
+            onClick={() => navigate('/admin-dashboard/journals')}
+            className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
+          >
             <FileText className="h-6 w-6 text-green-600 dark:text-green-400 mb-2" />
-            <h3 className="font-medium text-gray-900 dark:text-white">Content Management</h3>
+            <h3 className="font-medium text-gray-900 dark:text-white">Journals & Conferences</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Manage journals and conferences
             </p>
           </button>
 
-          <button className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left">
-            <Settings className="h-6 w-6 text-purple-600 dark:text-purple-400 mb-2" />
-            <h3 className="font-medium text-gray-900 dark:text-white">System Settings</h3>
+          <button 
+            onClick={() => navigate('/admin-dashboard/content')}
+            className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
+          >
+            <FileText className="h-6 w-6 text-purple-600 dark:text-purple-400 mb-2" />
+            <h3 className="font-medium text-gray-900 dark:text-white">Content Management</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Manage website content
+            </p>
+          </button>
+
+          <button 
+            onClick={() => navigate('/admin-dashboard/email-templates')}
+            className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
+          >
+            <Mail className="h-6 w-6 text-yellow-600 dark:text-yellow-400 mb-2" />
+            <h3 className="font-medium text-gray-900 dark:text-white">Email Templates</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Manage email templates
+            </p>
+          </button>
+
+          <button 
+            onClick={() => navigate('/admin-dashboard/system-config')}
+            className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
+          >
+            <Settings className="h-6 w-6 text-indigo-600 dark:text-indigo-400 mb-2" />
+            <h3 className="font-medium text-gray-900 dark:text-white">System Configuration</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Configure platform settings
             </p>
           </button>
 
-          <button className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left">
+          <button 
+            onClick={() => navigate('/admin-dashboard/analytics')}
+            className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
+          >
             <BarChart3 className="h-6 w-6 text-orange-600 dark:text-orange-400 mb-2" />
-            <h3 className="font-medium text-gray-900 dark:text-white">Analytics</h3>
+            <h3 className="font-medium text-gray-900 dark:text-white">Analytics & Reports</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               View system analytics
+            </p>
+          </button>
+
+          <button 
+            onClick={() => navigate('/admin-dashboard/backup')}
+            className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
+          >
+            <Database className="h-6 w-6 text-red-600 dark:text-red-400 mb-2" />
+            <h3 className="font-medium text-gray-900 dark:text-white">Backup & Export</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Manage data backups
             </p>
           </button>
         </div>

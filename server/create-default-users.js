@@ -1,9 +1,7 @@
 const mongoose = require('mongoose');
 const User = require('./models/User');
+const config = require('./config');
 require('dotenv').config();
-
-// MongoDB Connection
-const MONGODB_URI = 'mongodb+srv://dharmendrashukla239_db_user:6CTvn1goGYxsdRPg@cluster0.zuz5amc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
 
 const defaultUsers = [
   // Super Admin
@@ -178,7 +176,7 @@ const defaultUsers = [
 async function createDefaultUsers() {
   try {
     // Connect to MongoDB
-    await mongoose.connect(MONGODB_URI, {
+    await mongoose.connect(config.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
@@ -225,3 +223,4 @@ async function createDefaultUsers() {
 }
 
 createDefaultUsers();
+

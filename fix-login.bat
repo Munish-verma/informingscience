@@ -12,11 +12,11 @@ echo Step 2: Waiting for server to start...
 timeout /t 5 /nobreak > nul
 
 echo Step 3: Testing server health...
-curl http://localhost:5000/api/health
+curl http://localhost:3000/api/health
 
 echo.
 echo Step 4: Testing login API...
-curl -X POST http://localhost:5000/api/admin/login -H "Content-Type: application/json" -d "{\"email\":\"admin@example.com\",\"password\":\"admin123\"}"
+curl -X POST http://localhost:3000/api/admin/login -H "Content-Type: application/json" -d "{\"email\":\"admin@example.com\",\"password\":\"admin123\"}"
 
 echo.
 echo ========================================

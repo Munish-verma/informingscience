@@ -62,12 +62,12 @@ If you want to use the full MongoDB version:
 
 ### Test Server Health:
 ```bash
-curl http://localhost:5000/api/health
+curl http://localhost:3000/api/health
 ```
 
 ### Test Login API:
 ```bash
-curl -X POST http://localhost:5000/api/admin/login -H "Content-Type: application/json" -d "{\"email\":\"admin@example.com\",\"password\":\"admin123\"}"
+curl -X POST http://localhost:3000/api/admin/login -H "Content-Type: application/json" -d "{\"email\":\"admin@example.com\",\"password\":\"admin123\"}"
 ```
 
 ## Default Credentials
@@ -77,7 +77,7 @@ curl -X POST http://localhost:5000/api/admin/login -H "Content-Type: application
 ## Troubleshooting
 
 ### If servers won't start:
-1. Check if port 5000 is already in use
+1. Check if port 3000 is already in use
 2. Kill any existing Node.js processes
 3. Restart your terminal/command prompt
 
@@ -87,7 +87,7 @@ curl -X POST http://localhost:5000/api/admin/login -H "Content-Type: application
 3. Try clearing browser cache and localStorage
 
 ### If you see CORS errors:
-1. Make sure the server is running on port 5000
+1. Make sure the server is running on port 3000
 2. Make sure the frontend is running on port 3000
 3. Check that CORS is properly configured
 

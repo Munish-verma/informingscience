@@ -30,8 +30,8 @@ npm start
 ### 2. Verify Server Status
 
 Check if the backend server is running by visiting:
-- http://localhost:5000/api/health
-- http://localhost:5000/api/test
+- http://localhost:3000/api/health
+- http://localhost:3000/api/test
 
 You should see JSON responses indicating the server is running.
 
@@ -44,7 +44,7 @@ Open your browser's Developer Tools (F12) and check:
 ### 4. Common Issues and Solutions
 
 #### Issue: "Cannot connect to server"
-**Solution**: Make sure the backend server is running on port 5000
+**Solution**: Make sure the backend server is running on port 3000
 
 #### Issue: CORS errors
 **Solution**: The server is configured to allow requests from localhost:3000. If you're using a different port, update the CORS configuration in `server/server.js`
@@ -66,7 +66,7 @@ If no admin account exists, the server will automatically create one with:
 ### 6. Environment Variables
 
 The server uses these environment variables (optional):
-- `PORT`: Server port (default: 5000)
+- `PORT`: Server port (default: 3000)
 - `JWT_SECRET`: JWT signing secret (default: auto-generated)
 - `MONGODB_URI`: MongoDB connection string
 
@@ -77,7 +77,7 @@ To enable debug logging, check the browser console and server terminal for detai
 ### 8. Network Issues
 
 If you're behind a corporate firewall or using a VPN, ensure:
-- Port 5000 is accessible
+- Port 3000 is accessible
 - MongoDB Atlas is accessible
 - No proxy settings are blocking the requests
 

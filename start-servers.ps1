@@ -12,7 +12,7 @@ Start-Process powershell -ArgumentList "-NoExit", "-Command", "npm start"
 
 Write-Host ""
 Write-Host "Both servers are starting..." -ForegroundColor Green
-Write-Host "Backend: http://localhost:5000" -ForegroundColor Cyan
+Write-Host "Backend: http://localhost:3000" -ForegroundColor Cyan
 Write-Host "Frontend: http://localhost:3000" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Press any key to close this window..." -ForegroundColor Gray

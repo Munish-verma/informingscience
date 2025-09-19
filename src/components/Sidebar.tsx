@@ -1,19 +1,72 @@
 import React from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 interface SidebarProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
 }
 
+interface MenuItem {
+  name: string;
+  icon: string;
+  path: string;
+  roles: string[];
+}
+
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
-  const menuItems = [
-    { name: 'Dashboard', icon: '📊', href: '#', active: true },
-    { name: 'Users', icon: '👥', href: '#' },
-    { name: 'Products', icon: '📦', href: '#' },
-    { name: 'Orders', icon: '🛒', href: '#' },
-    { name: 'Analytics', icon: '📈', href: '#' },
-    { name: 'Settings', icon: '⚙️', href: '#' },
-  ];
+  const { user, logout } = useAuth();
+  const location = useLocation();
+
+  // Get menu items based on user role
+  const getMenuItems = (): MenuItem[] => {
+    const baseItems: MenuItem[] = [
+      { name: 'Dashboard', icon: '📊', path: '/dashboard', roles: [] },
+    ];
+
+    if (user?.roles?.includes('super-admin') || user?.roles?.includes('administrator')) {
+      baseItems.push(
+        { name: 'Admin Dashboard', icon: '👑', path: '/admin-dashboard', roles: ['super-admin', 'administrator'] },
+        { name: 'User Management', icon: '👥', path: '/admin/users', roles: ['super-admin', 'administrator'] },
+        { name: 'System Settings', icon: '⚙️', path: '/admin/settings', roles: ['super-admin', 'administrator'] }
+      );
+    }
+
+    if (user?.roles?.includes('editor-in-chief')) {
+      baseItems.push(
+        { name: 'Editor-in-Chief', icon: '📝', path: '/editor-in-chief-dashboard', roles: ['editor-in-chief'] },
+        { name: 'Manuscripts', icon: '📄', path: '/editor-in-chief/manuscripts', roles: ['editor-in-chief'] },
+        { name: 'Reviewers', icon: '👨‍💼', path: '/editor-in-chief/reviewers', roles: ['editor-in-chief'] }
+      );
+    }
+
+    if (user?.roles?.includes('editor')) {
+      baseItems.push(
+        { name: 'Editor Dashboard', icon: '✏️', path: '/editor-dashboard', roles: ['editor'] },
+        { name: 'My Manuscripts', icon: '📄', path: '/editor/manuscripts', roles: ['editor'] },
+        { name: 'Assignments', icon: '📋', path: '/editor/assignments', roles: ['editor'] }
+      );
+    }
+
+    if (user?.roles?.includes('reviewer') || user?.isReviewer) {
+      baseItems.push(
+        { name: 'Reviewer Dashboard', icon: '🔍', path: '/reviewer-dashboard', roles: ['reviewer'] },
+        { name: 'My Reviews', icon: '📝', path: '/reviewer/reviews', roles: ['reviewer'] },
+        { name: 'Available Reviews', icon: '📋', path: '/reviewer/available', roles: ['reviewer'] }
+      );
+    }
+
+    // Add common items for all users
+    baseItems.push(
+      { name: 'Profile', icon: '👤', path: '/profile', roles: [] },
+      { name: 'Publications', icon: '📚', path: '/publications', roles: [] },
+      { name: 'Community', icon: '🌐', path: '/community', roles: [] }
+    );
+
+    return baseItems;
+  };
+
+  const menuItems = getMenuItems();
 
   return (
     <>
@@ -43,33 +96,57 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
 
         <nav className="mt-6">
           <div className="px-4 space-y-2">
-            {menuItems.map((item) => (
-              <a
-                key={item.name}
-                href={item.href}
-                className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors duration-200 ${
-                  item.active
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
-                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
-                }`}
-              >
-                <span className="mr-3 text-lg">{item.icon}</span>
-                {item.name}
-              </a>
-            ))}
+            {menuItems.map((item) => {
+              // Check if user has required role for this menu item
+              const hasAccess = item.roles.length === 0 || 
+                item.roles.some(role => user?.roles?.includes(role));
+              
+              if (!hasAccess) return null;
+
+              return (
+                <NavLink
+                  key={item.name}
+                  to={item.path}
+                  onClick={() => setIsOpen(false)}
+                  className={({ isActive }: { isActive: boolean }) =>
+                    `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors duration-200 ${
+                      isActive
+                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
+                    }`
+                  }
+                >
+                  <span className="mr-3 text-lg">{item.icon}</span>
+                  {item.name}
+                </NavLink>
+              );
+            })}
           </div>
         </nav>
 
         {/* User profile section */}
         <div className="absolute bottom-0 w-full p-4 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex items-center">
-            <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center">
-              👤
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center">
+                👤
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                  {user ? `${user.firstName} ${user.lastName}` : 'User'}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {user?.email || 'user@example.com'}
+                </p>
+              </div>
             </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-200">Admin User</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">admin@example.com</p>
-            </div>
+            <button
+              onClick={logout}
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors"
+              title="Logout"
+            >
+              🚪
+            </button>
           </div>
         </div>
       </div>

@@ -19,68 +19,119 @@ const conferenceSchema = new mongoose.Schema({
   },
   
   // Conference Details
-  conferenceType: {
+  theme: {
     type: String,
-    enum: ['annual', 'biennial', 'special', 'workshop'],
-    default: 'annual'
+    trim: true
   },
-  year: {
-    type: Number,
+  topics: [{
+    type: String,
+    trim: true
+  }],
+  
+  // Dates and Location
+  startDate: {
+    type: Date,
     required: true
   },
-  edition: {
-    type: Number,
-    default: 1
+  endDate: {
+    type: Date,
+    required: true
+  },
+  abstractDeadline: {
+    type: Date
+  },
+  paperDeadline: {
+    type: Date
+  },
+  registrationDeadline: {
+    type: Date
   },
   
-  // Dates
-  dates: {
-    startDate: {
-      type: Date,
-      required: true
-    },
-    endDate: {
-      type: Date,
-      required: true
-    },
-    submissionDeadline: {
-      type: Date,
-      required: true
-    },
-    reviewDeadline: Date,
-    notificationDate: Date,
-    registrationDeadline: Date
-  },
-  
-  // Location
+  // Location Information
   location: {
-    venue: String,
-    city: String,
-    country: String,
-    address: String,
+    venue: {
+      type: String,
+      trim: true
+    },
+    address: {
+      type: String,
+      trim: true
+    },
+    city: {
+      type: String,
+      trim: true
+    },
+    country: {
+      type: String,
+      trim: true
+    },
+    coordinates: {
+      latitude: Number,
+      longitude: Number
+    },
     isVirtual: {
       type: Boolean,
       default: false
     },
-    virtualPlatform: String
+    virtualPlatform: {
+      type: String,
+      trim: true
+    },
+    virtualLink: {
+      type: String,
+      trim: true
+    }
   },
   
-  // Status
+  // Conference Status
   status: {
     type: String,
-    enum: ['planning', 'open_for_submissions', 'under_review', 'registration_open', 'ongoing', 'completed', 'cancelled'],
-    default: 'planning'
+    enum: ['upcoming', 'ongoing', 'completed', 'cancelled'],
+    default: 'upcoming'
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  isOpenForRegistration: {
+    type: Boolean,
+    default: true
+  },
+  isOpenForSubmissions: {
+    type: Boolean,
+    default: true
   },
   
-  // Conference Chair
-  chair: {
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
+  // Organizing Committee
+  organizingCommittee: {
+    chair: {
+      userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+      },
+      name: String,
+      email: String,
+      affiliation: String
     },
-    name: String,
-    email: String,
-    affiliation: String
+    coChairs: [{
+      userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+      },
+      name: String,
+      email: String,
+      affiliation: String
+    }],
+    members: [{
+      userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+      },
+      name: String,
+      email: String,
+      affiliation: String,
+      role: String
+    }]
   },
   
   // Program Committee
@@ -91,37 +142,57 @@ const conferenceSchema = new mongoose.Schema({
     },
     name: String,
     email: String,
+    affiliation: String,
     role: {
       type: String,
-      enum: ['chair', 'co-chair', 'member'],
-      default: 'member'
+      enum: ['reviewer', 'track-chair', 'session-chair', 'member']
     },
-    isActive: {
-      type: Boolean,
-      default: true
-    }
+    topics: [String]
   }],
   
-  // Tracks/Sessions
-  tracks: [{
-    name: {
-      type: String,
-      required: true
-    },
-    description: String,
-    chair: {
-      userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-      },
-      name: String,
-      email: String
-    },
-    isActive: {
+  // Registration Information
+  registration: {
+    isRequired: {
       type: Boolean,
       default: true
-    }
-  }],
+    },
+    fees: {
+      earlyBird: {
+        amount: Number,
+        currency: {
+          type: String,
+          default: 'USD'
+        },
+        deadline: Date
+      },
+      regular: {
+        amount: Number,
+        currency: {
+          type: String,
+          default: 'USD'
+        }
+      },
+      student: {
+        amount: Number,
+        currency: {
+          type: String,
+          default: 'USD'
+        }
+      },
+      member: {
+        amount: Number,
+        currency: {
+          type: String,
+          default: 'USD'
+        }
+      }
+    },
+    includes: [String], // What's included in registration
+    paymentMethods: [{
+      type: String,
+      enum: ['credit-card', 'paypal', 'bank-transfer', 'check']
+    }]
+  },
   
   // Submission Guidelines
   submissionGuidelines: {
@@ -129,53 +200,48 @@ const conferenceSchema = new mongoose.Schema({
       type: Number,
       default: 10
     },
-    allowedFormats: [{
-      type: String,
-      enum: ['pdf', 'doc', 'docx'],
-      default: ['pdf']
-    }],
-    requiresAbstract: {
-      type: Boolean,
-      default: true
-    },
-    requiresKeywords: {
-      type: Boolean,
-      default: true
-    },
-    maxAuthors: {
+    minPages: {
       type: Number,
-      default: 6
+      default: 4
+    },
+    format: {
+      type: String,
+      enum: ['pdf', 'doc', 'docx', 'latex'],
+      default: 'pdf'
+    },
+    template: {
+      type: String // URL to template file
+    },
+    blindReview: {
+      type: Boolean,
+      default: true
+    },
+    categories: [{
+      name: String,
+      description: String,
+      maxPages: Number
+    }]
+  },
+  
+  // Conference Links
+  links: {
+    website: String,
+    registration: String,
+    submission: String,
+    program: String,
+    proceedings: String,
+    socialMedia: {
+      twitter: String,
+      facebook: String,
+      linkedin: String
     }
   },
   
-  // Registration
-  registration: {
-    isOpen: {
-      type: Boolean,
-      default: false
-    },
-    fees: {
-      earlyBird: {
-        member: Number,
-        nonMember: Number,
-        student: Number
-      },
-      regular: {
-        member: Number,
-        nonMember: Number,
-        student: Number
-      },
-      late: {
-        member: Number,
-        nonMember: Number,
-        student: Number
-      }
-    },
-    capacity: Number,
-    registeredCount: {
-      type: Number,
-      default: 0
-    }
+  // Contact Information
+  contact: {
+    email: String,
+    phone: String,
+    address: String
   },
   
   // Statistics
@@ -184,30 +250,35 @@ const conferenceSchema = new mongoose.Schema({
       type: Number,
       default: 0
     },
-    acceptedSubmissions: {
+    acceptedPapers: {
       type: Number,
       default: 0
     },
-    rejectedSubmissions: {
+    totalRegistrations: {
       type: Number,
       default: 0
     },
-    registeredParticipants: {
+    totalAttendees: {
       type: Number,
       default: 0
     }
   },
   
-  // Website and Social Media
-  website: {
-    url: String,
-    customDomain: String
+  // Conference History
+  isRecurring: {
+    type: Boolean,
+    default: false
   },
-  socialMedia: {
-    twitter: String,
-    facebook: String,
-    linkedin: String
+  frequency: {
+    type: String,
+    enum: ['annual', 'biannual', 'triennial', 'irregular']
   },
+  previousConferences: [{
+    year: Number,
+    location: String,
+    attendance: Number,
+    papers: Number
+  }],
   
   // Timestamps
   createdAt: {
@@ -217,119 +288,130 @@ const conferenceSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now
+  },
+  createdBy: {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    name: String
   }
 });
 
 // Indexes
 conferenceSchema.index({ shortName: 1 });
-conferenceSchema.index({ year: 1 });
 conferenceSchema.index({ status: 1 });
-conferenceSchema.index({ 'dates.startDate': 1 });
-conferenceSchema.index({ 'chair.userId': 1 });
+conferenceSchema.index({ startDate: 1 });
+conferenceSchema.index({ isActive: 1 });
+conferenceSchema.index({ topics: 1 });
+conferenceSchema.index({ 'location.city': 1, 'location.country': 1 });
 
 // Pre-save middleware to update updatedAt
 conferenceSchema.pre('save', function(next) {
   this.updatedAt = new Date();
+  
+  // Auto-update status based on dates
+  const now = new Date();
+  if (this.startDate <= now && this.endDate >= now) {
+    this.status = 'ongoing';
+  } else if (this.endDate < now) {
+    this.status = 'completed';
+  } else if (this.startDate > now) {
+    this.status = 'upcoming';
+  }
+  
   next();
 });
 
-// Instance method to check if conference is accepting submissions
-conferenceSchema.methods.isAcceptingSubmissions = function() {
-  const now = new Date();
-  return this.status === 'open_for_submissions' && 
-         this.dates.submissionDeadline > now;
+// Instance method to get upcoming conferences
+conferenceSchema.statics.getUpcoming = function() {
+  return this.find({
+    status: 'upcoming',
+    isActive: true,
+    startDate: { $gte: new Date() }
+  }).sort({ startDate: 1 });
 };
 
-// Instance method to check if conference is ongoing
-conferenceSchema.methods.isOngoing = function() {
+// Instance method to get past conferences
+conferenceSchema.statics.getPast = function() {
+  return this.find({
+    status: 'completed',
+    isActive: true
+  }).sort({ endDate: -1 });
+};
+
+// Instance method to get current conferences
+conferenceSchema.statics.getCurrent = function() {
   const now = new Date();
-  return this.dates.startDate <= now && this.dates.endDate >= now;
+  return this.find({
+    status: 'ongoing',
+    isActive: true,
+    startDate: { $lte: now },
+    endDate: { $gte: now }
+  }).sort({ startDate: 1 });
 };
 
 // Instance method to check if registration is open
 conferenceSchema.methods.isRegistrationOpen = function() {
+  if (!this.isOpenForRegistration) return false;
+  if (this.registrationDeadline && new Date() > this.registrationDeadline) return false;
+  return true;
+};
+
+// Instance method to check if submissions are open
+conferenceSchema.methods.isSubmissionOpen = function() {
+  if (!this.isOpenForSubmissions) return false;
+  if (this.paperDeadline && new Date() > this.paperDeadline) return false;
+  return true;
+};
+
+// Instance method to get registration fee
+conferenceSchema.methods.getRegistrationFee = function(userType = 'regular') {
   const now = new Date();
-  return this.registration.isOpen && 
-         this.registration.capacity > this.registration.registeredCount &&
-         this.dates.registrationDeadline > now;
+  const fees = this.registration.fees;
+  
+  if (userType === 'student' && fees.student) {
+    return fees.student;
+  }
+  
+  if (userType === 'member' && fees.member) {
+    return fees.member;
+  }
+  
+  if (fees.earlyBird && fees.earlyBird.deadline && now <= fees.earlyBird.deadline) {
+    return fees.earlyBird;
+  }
+  
+  return fees.regular;
 };
 
 // Instance method to add program committee member
-conferenceSchema.methods.addProgramCommitteeMember = function(userId, name, email, role = 'member') {
+conferenceSchema.methods.addProgramCommitteeMember = function(userId, name, email, affiliation, role, topics = []) {
   const existingMember = this.programCommittee.find(member => 
     member.userId.toString() === userId.toString()
   );
   
-  if (existingMember) {
-    existingMember.isActive = true;
-    existingMember.role = role;
-  } else {
+  if (!existingMember) {
     this.programCommittee.push({
       userId,
       name,
       email,
+      affiliation,
       role,
-      isActive: true
+      topics
     });
   }
+  
+  return this.save();
 };
 
 // Instance method to remove program committee member
 conferenceSchema.methods.removeProgramCommitteeMember = function(userId) {
-  const member = this.programCommittee.find(member => 
-    member.userId.toString() === userId.toString()
+  this.programCommittee = this.programCommittee.filter(member => 
+    member.userId.toString() !== userId.toString()
   );
-  if (member) {
-    member.isActive = false;
-  }
-};
-
-// Instance method to add track
-conferenceSchema.methods.addTrack = function(name, description, chairUserId, chairName, chairEmail) {
-  this.tracks.push({
-    name,
-    description,
-    chair: {
-      userId: chairUserId,
-      name: chairName,
-      email: chairEmail
-    },
-    isActive: true
-  });
-};
-
-// Instance method to get active tracks
-conferenceSchema.methods.getActiveTracks = function() {
-  return this.tracks.filter(track => track.isActive);
-};
-
-// Instance method to get program committee members
-conferenceSchema.methods.getActiveProgramCommittee = function() {
-  return this.programCommittee.filter(member => member.isActive);
-};
-
-// Static method to find upcoming conferences
-conferenceSchema.statics.findUpcoming = function() {
-  const now = new Date();
-  return this.find({
-    'dates.startDate': { $gte: now },
-    status: { $in: ['planning', 'open_for_submissions', 'under_review', 'registration_open'] }
-  }).sort({ 'dates.startDate': 1 });
-};
-
-// Static method to find ongoing conferences
-conferenceSchema.statics.findOngoing = function() {
-  const now = new Date();
-  return this.find({
-    'dates.startDate': { $lte: now },
-    'dates.endDate': { $gte: now },
-    status: 'ongoing'
-  });
-};
-
-// Static method to find conferences by year
-conferenceSchema.statics.findByYear = function(year) {
-  return this.find({ year }).sort({ 'dates.startDate': 1 });
+  
+  return this.save();
 };
 
 module.exports = mongoose.model('Conference', conferenceSchema);

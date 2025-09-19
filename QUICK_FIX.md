@@ -15,7 +15,7 @@ node test-server.js
 
 You should see:
 ```
-Test server running on port 5000
+Test server running on port 3000
 Use email: admin@example.com, password: admin123
 ```
 
@@ -48,7 +48,7 @@ If the above doesn't work, double-click:
 - ✅ Provides immediate login functionality
 
 ## If It Still Doesn't Work
-1. Check if port 5000 is already in use
+1. Check if port 3000 is already in use
 2. Kill any existing Node.js processes
 3. Restart your computer
 4. Try the batch file method

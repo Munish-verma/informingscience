@@ -146,3 +146,4 @@ npm run create-admin
 4. Enable two-factor authentication
 5. Regularly rotate passwords
 6. Monitor for suspicious login attempts
+
