@@ -6,7 +6,7 @@ const PublicFooter: React.FC = () => {
   return (
     <footer className="bg-gray-200 ">
       <div className="">
-        <div className="max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-[1660px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="py-12">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 lg:flex lg:flex-row lg:gap-16">
               <div className="xl:basis-[420px] lg:shrink-0">

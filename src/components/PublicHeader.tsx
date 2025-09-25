@@ -148,7 +148,7 @@ const PublicHeader: React.FC<Props> = ({ onOpenMobile, onOpenLogin }) => {
 
     <header style={{ backgroundColor: '#295F9A' }}>
       <div className="px-4 sm:px-6 lg:px-8">
-        <div className="max-w-[1560px] mx-auto">
+        <div className="max-w-[1660px] mx-auto">
           <div className="flex items-center justify-between py-3">
             <div className="flex items-center">
               <a href="/">
@@ -188,7 +188,7 @@ const PublicHeader: React.FC<Props> = ({ onOpenMobile, onOpenLogin }) => {
 
       <div className="bg-white border-t border-gray-200">
         <div className="px-4 sm:px-6 lg:px-8">
-          <div className="max-w-[1560px] mx-auto">
+          <div className="max-w-[1460px]  w-[90%]  mx-auto">
             <div className="flex items-center py-4 min-w-0 gap-2 md:gap-4">
               <nav className="hidden xl:flex items-center space-x-3 md:space-x-4 lg:space-x-6 xl:space-x-8 flex-1 min-w-0 overflow-visible">
                 <NavLink 

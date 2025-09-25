@@ -11,7 +11,7 @@ const JoinISIPage: React.FC = () => {
       <PublicHeader />
 
       <main className="px-4 sm:px-6 lg:px-8 py-8">
-        <div className="max-w-[1460px] mx-auto">
+        <div className="max-w-[1460px]  w-[90%]  mx-auto">
           {/* Top form area (Contact page style) */}
           <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_440px] gap-6">
             <section className="space-y-6 mt-[10px]">

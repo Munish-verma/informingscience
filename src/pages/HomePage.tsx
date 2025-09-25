@@ -378,7 +378,7 @@ const HomePage: React.FC = () => {
       <main className="py-8">
         {/* Hero Section - Full Width */}
         <div className="px-4 sm:px-6 lg:px-8">
-          <div className="max-w-[1460px] mx-auto">
+          <div className="max-w-[1460px]  w-[90%]  mx-auto">
             <div className="flex flex-col lg:flex-row items-start gap-6 sm:gap-8 mb-12 pt-4 sm:pt-6 lg:pt-10">
           {/* Left Side - Text and Stats - 50% width */}
           <div className="w-full lg:w-1/2 space-y-4">
@@ -471,7 +471,7 @@ const HomePage: React.FC = () => {
 
     {/* Journals and Publications Section */}
     <div className="px-4 sm:px-6 lg:px-8">
-      <div className="max-w-[1460px] mx-auto">
+      <div className="max-w-[1460px]  w-[90%]  mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-10">
           {/* Left Column - Journals */}
           <div className="flex flex-col h-full">
@@ -586,7 +586,7 @@ const HomePage: React.FC = () => {
 
     {/* Community and News Section - Separate Section */}
         <div className="py-8 sm:py-12 lg:py-[50px] my-8 sm:my-12 lg:my-[80px] px-4 sm:px-6 lg:px-8" style={{ borderTop: '1px solid #DDDDDD', borderBottom: '1px solid #DDDDDD' }}>
-          <div className="max-w-[1460px] mx-auto">
+          <div className="max-w-[1460px]  w-[90%]  mx-auto">
             <div className="flex flex-col lg:flex-row gap-6 sm:gap-8 lg:gap-[80px]">
             {/* Left Column - Community (65%) */}
             <div className="flex flex-col h-full lg:w-[65%]">

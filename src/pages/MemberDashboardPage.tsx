@@ -38,7 +38,7 @@ const MemberDashboardPage: React.FC = () => {
     <div className="min-h-screen bg-[#f5f5f5]">
       <MemberHeader />
       
-      <div className="max-w-[1460px] mx-auto py-4 md:py-8 px-2">
+      <div className="max-w-[1460px]  w-[90%]  mx-auto py-4 md:py-8 px-2">
         <div className="flex">
           <MemberSidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
           
