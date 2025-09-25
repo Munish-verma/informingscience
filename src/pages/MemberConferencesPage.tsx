@@ -10,7 +10,7 @@ const MemberConferencesPage: React.FC = () => {
     <div className="min-h-screen bg-white">
       <MemberHeader />
       
-      <div className="max-w-[1560px] mx-auto py-2 sm:py-4 md:py-8 px-2">
+      <div className="max-w-[1460px] mx-auto py-2 sm:py-4 md:py-8 px-2">
         <div className="flex">
           <MemberSidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
           

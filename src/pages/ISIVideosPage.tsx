@@ -82,7 +82,7 @@ const ISIVideosPage: React.FC = () => {
       <PublicHeader />
 
       <main className="px-4 sm:px-6 lg:px-8 py-8">
-        <div className="max-w-[1560px] mx-auto md:pb-10">
+        <div className="max-w-[1460px] mx-auto md:pb-10">
           {/* Breadcrumbs */}
           <div className="text-xs text-gray-500 mb-6">
             <Link to="/" className="hover:underline">Home</Link> 

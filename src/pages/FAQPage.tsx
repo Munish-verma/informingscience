@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import PublicHeader from '../components/PublicHeader';
 import PublicFooter from '../components/PublicFooter';
 import ccImg from '../assets/images/cc-By-nc 1.png';
-
+ 
 const linkBase = ' hover:text-[#295F9A] underline underline-offset-2 break-all';
 
 const AccordionItem: React.FC<{ title: string; content: React.ReactNode; isOpen: boolean; onToggle: () => void }> = ({ title, content, isOpen, onToggle }) => {

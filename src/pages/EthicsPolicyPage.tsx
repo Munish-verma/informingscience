@@ -238,3 +238,6 @@ const EthicsPolicyPage: React.FC = () => {
 };
 
 export default EthicsPolicyPage;
+
+
+

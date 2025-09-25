@@ -120,7 +120,7 @@ const LoginModal: React.FC<Props> = ({ open, onClose }) => {
               </div>
               <div className="flex items-center  text-[13px] font-medium">
                 <label className="inline-flex items-center text-black"><input type="checkbox" className="mr-2 border border-black rounded-sm accent-[#295F9A]" /> Remember Me</label>
-                <button type="button" className="text-[#295F9A] hover:underline">Forgot Password?</button>
+                <button type="button" className="text-[#295F9A] hover:underline ml-1"> Forgot Password?</button>
               </div>
               <button 
                 type="submit"
@@ -134,7 +134,7 @@ const LoginModal: React.FC<Props> = ({ open, onClose }) => {
                 <span className="px-6 text-[12px] text-[#3E3232]">Or</span>
                 <div className="flex-1 h-px bg-[#000]" />
               </div>
-              <div className="text-center text-[13px] text-gray-900 font-medium">Don't have an account ? <button type="button" className="text-[#295F9A] hover:underline">Sign Up</button></div>
+              <div className="text-center text-[13px] text-gray-900 font-medium">Don't have an account ?  <button type="button" className="text-[#295F9A] hover:underline">Sign Up</button></div>
             </form>
           </div>
         </div>
