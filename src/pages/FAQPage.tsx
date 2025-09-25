@@ -9,7 +9,7 @@ const AccordionItem: React.FC<{ title: string; content: React.ReactNode; isOpen:
   return (
     <div className="rounded-xl bg-[#F5F5F5]">
       <button
-        onClick={onToggle}
+        onClick={onToggle} 
         className="w-full flex items-center justify-between px-4 sm:px-6 py-4 sm:py-5 text-left"
       >
         <span className="text-sm sm:text-base md:text-lg font-medium text-gray-900">{title}</span>
