@@ -2,7 +2,6 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
-  // Basic Information
   firstName: {
     type: String,
     required: true,
@@ -20,40 +19,35 @@ const userSchema = new mongoose.Schema({
     trim: true,
     lowercase: true
   },
-  secondaryEmail: {
-    type: String,
-    trim: true,
-    lowercase: true
-  },
   password: {
     type: String,
     required: true
   },
-  
-  // Account Type and Status
   accountType: {
     type: String,
-    enum: ['colleague', 'member'],
+    enum: ['colleague', 'member', 'student'],
     default: 'colleague'
   },
   membershipStatus: {
     type: String,
-    enum: ['active', 'expired', 'pending', 'cancelled'],
+    enum: ['active', 'inactive', 'expired', 'pending'],
     default: 'pending'
   },
   membershipExpiryDate: {
     type: Date
   },
-  isEmailVerified: {
-    type: Boolean,
-    default: false
-  },
+  roles: [{
+    type: String,
+    enum: ['reviewer', 'editor', 'editor-in-chief', 'administrator', 'super-admin']
+  }],
   isActive: {
     type: Boolean,
     default: true
   },
-  
-  // Academic Information
+  isEmailVerified: {
+    type: Boolean,
+    default: false
+  },
   affiliation: {
     type: String,
     trim: true
@@ -70,18 +64,14 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
-  cvUrl: {
-    type: String
-  },
   bio: {
     type: String,
-    maxLength: 1000
+    trim: true
   },
-  
-  // Profile Information
-  profilePhoto: {
-    type: String
-  },
+  topicsOfInterest: [{
+    type: String,
+    trim: true
+  }],
   country: {
     type: String,
     trim: true
@@ -90,136 +80,14 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
-  
-  // Topics of Interest
-  topicsOfInterest: [{
-    type: String,
-    trim: true
-  }],
-  
-  // Reviewing Options
-  isReviewer: {
-    type: Boolean,
-    default: false
-  },
-  reviewerStatus: {
-    type: String,
-    enum: ['pending', 'approved', 'rejected', 'inactive'],
-    default: 'pending'
-  },
-  reviewerAvailability: {
-    isAvailable: {
-      type: Boolean,
-      default: true
-    },
-    unavailableFrom: {
-      type: Date
-    },
-    unavailableTo: {
-      type: Date
-    },
-    maxReviewsPerYear: {
-      type: Number,
-      default: 10
-    },
-    minDaysBetweenAssignments: {
-      type: Number,
-      default: 7
-    }
-  },
-  
-  // Roles and Permissions
-  roles: [{
-    type: String,
-    enum: ['reviewer', 'editor', 'editor-in-chief', 'administrator', 'super-admin']
-  }],
-  
-  // Journal/Conference Associations
-  journalRoles: [{
-    journalId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Journal'
-    },
-    role: {
-      type: String,
-      enum: ['reviewer', 'editor', 'editor-in-chief']
-    },
-    status: {
-      type: String,
-      enum: ['active', 'inactive', 'pending'],
-      default: 'pending'
-    },
-    joinedDate: {
-      type: Date,
-      default: Date.now
-    }
-  }],
-  
-  // Preferences
-  preferences: {
-    newsletterSubscription: {
-      type: Boolean,
-      default: true
-    },
-    publicProfile: {
-      type: Boolean,
-      default: true
-    },
-    emailNotifications: {
-      type: Boolean,
-      default: true
-    }
-  },
-  
-  // Social Media Links
   socialLinks: {
-    website: String,
+    linkedin: String,
     twitter: String,
-    facebook: String,
-    linkedin: String
+    website: String
   },
-  
-  // Statistics and Metrics
-  stats: {
-    totalReviews: {
-      type: Number,
-      default: 0
-    },
-    completedReviews: {
-      type: Number,
-      default: 0
-    },
-    averageReviewTime: {
-      type: Number,
-      default: 0
-    },
-    averageReviewScore: {
-      type: Number,
-      default: 0
-    },
-    reviewerRating: {
-      type: Number,
-      default: 0
-    }
-  },
-  
-  // Awards and Recognition
-  awards: [{
-    type: {
-      type: String,
-      enum: ['bronze', 'silver', 'gold', 'platinum']
-    },
-    year: Number,
-    description: String,
-    awardedDate: {
-      type: Date,
-      default: Date.now
-    }
-  }],
-  
-  // Timestamps
   lastLogin: {
-    type: Date
+    type: Date,
+    default: Date.now
   },
   createdAt: {
     type: Date,
@@ -231,15 +99,7 @@ const userSchema = new mongoose.Schema({
   }
 });
 
-// Indexes for better query performance
-userSchema.index({ email: 1 });
-userSchema.index({ accountType: 1 });
-userSchema.index({ membershipStatus: 1 });
-userSchema.index({ 'journalRoles.journalId': 1 });
-userSchema.index({ topicsOfInterest: 1 });
-userSchema.index({ country: 1, city: 1 });
-
-// Pre-save middleware to hash password
+// Hash password before saving
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
   
@@ -252,42 +112,15 @@ userSchema.pre('save', async function(next) {
   }
 });
 
-// Pre-save middleware to update updatedAt
-userSchema.pre('save', function(next) {
-  this.updatedAt = new Date();
-  next();
-});
-
-// Instance method to compare password
+// Compare password method
 userSchema.methods.comparePassword = async function(candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-// Instance method to get full name
-userSchema.methods.getFullName = function() {
-  return `${this.firstName} ${this.lastName}`;
-};
-
-// Instance method to check if user has role
-userSchema.methods.hasRole = function(role) {
-  return this.roles.includes(role);
-};
-
-// Instance method to check if user is member
-userSchema.methods.isMember = function() {
-  return this.accountType === 'member' && this.membershipStatus === 'active';
-};
-
-// Static method to find available reviewers
-userSchema.statics.findAvailableReviewers = function(journalId, topics) {
-  return this.find({
-    'journalRoles.journalId': journalId,
-    'journalRoles.role': 'reviewer',
-    'journalRoles.status': 'active',
-    'reviewerAvailability.isAvailable': true,
-    topicsOfInterest: { $in: topics },
-    isActive: true
-  });
-};
+// Update updatedAt field before saving
+userSchema.pre('save', function(next) {
+  this.updatedAt = new Date();
+  next();
+});
 
 module.exports = mongoose.model('User', userSchema);

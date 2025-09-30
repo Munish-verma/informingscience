@@ -15,7 +15,7 @@ interface MenuItem {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
-  const { user, logout } = useAuth();
+  const { admin, logout } = useAuth();
   const location = useLocation();
 
   // Get menu items based on user role
@@ -24,35 +24,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
       { name: 'Dashboard', icon: '📊', path: '/dashboard', roles: [] },
     ];
 
-    if (user?.roles?.includes('super-admin') || user?.roles?.includes('administrator')) {
+    if (admin?.role === 'super-admin' || admin?.role === 'administrator') {
       baseItems.push(
         { name: 'Admin Dashboard', icon: '👑', path: '/admin-dashboard', roles: ['super-admin', 'administrator'] },
         { name: 'User Management', icon: '👥', path: '/admin/users', roles: ['super-admin', 'administrator'] },
         { name: 'System Settings', icon: '⚙️', path: '/admin/settings', roles: ['super-admin', 'administrator'] }
-      );
-    }
-
-    if (user?.roles?.includes('editor-in-chief')) {
-      baseItems.push(
-        { name: 'Editor-in-Chief', icon: '📝', path: '/editor-in-chief-dashboard', roles: ['editor-in-chief'] },
-        { name: 'Manuscripts', icon: '📄', path: '/editor-in-chief/manuscripts', roles: ['editor-in-chief'] },
-        { name: 'Reviewers', icon: '👨‍💼', path: '/editor-in-chief/reviewers', roles: ['editor-in-chief'] }
-      );
-    }
-
-    if (user?.roles?.includes('editor')) {
-      baseItems.push(
-        { name: 'Editor Dashboard', icon: '✏️', path: '/editor-dashboard', roles: ['editor'] },
-        { name: 'My Manuscripts', icon: '📄', path: '/editor/manuscripts', roles: ['editor'] },
-        { name: 'Assignments', icon: '📋', path: '/editor/assignments', roles: ['editor'] }
-      );
-    }
-
-    if (user?.roles?.includes('reviewer') || user?.isReviewer) {
-      baseItems.push(
-        { name: 'Reviewer Dashboard', icon: '🔍', path: '/reviewer-dashboard', roles: ['reviewer'] },
-        { name: 'My Reviews', icon: '📝', path: '/reviewer/reviews', roles: ['reviewer'] },
-        { name: 'Available Reviews', icon: '📋', path: '/reviewer/available', roles: ['reviewer'] }
       );
     }
 
@@ -97,9 +73,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
         <nav className="mt-6">
           <div className="px-4 space-y-2">
             {menuItems.map((item) => {
-              // Check if user has required role for this menu item
+              // Check if admin has required role for this menu item
               const hasAccess = item.roles.length === 0 || 
-                item.roles.some(role => user?.roles?.includes(role));
+                item.roles.includes(admin?.role || '');
               
               if (!hasAccess) return null;
 
@@ -133,10 +109,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
               </div>
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                  {user ? `${user.firstName} ${user.lastName}` : 'User'}
+                  {admin ? admin.username : 'Admin'}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {user?.email || 'user@example.com'}
+                  {admin?.email || 'admin@example.com'}
                 </p>
               </div>
             </div>

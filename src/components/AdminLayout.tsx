@@ -11,7 +11,7 @@ interface AdminLayoutProps {}
 const AdminLayout: React.FC<AdminLayoutProps> = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
-  const { user, logout } = useAuth();
+  const { admin, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -93,10 +93,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = () => {
               </div>
               <div className="ml-3">
                 <p className="text-base font-medium text-gray-700 dark:text-gray-300">
-                  {user?.firstName} {user?.lastName}
+                  {admin?.username}
                 </p>
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                  {user?.roles?.includes('super-admin') ? 'Super Admin' : 'Administrator'}
+                  {admin?.role === 'super-admin' ? 'Super Admin' : 'Administrator'}
                 </p>
               </div>
             </div>
@@ -142,10 +142,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = () => {
                 </div>
                 <div className="ml-3 flex-1">
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {user?.firstName} {user?.lastName}
+                    {admin?.username}
                   </p>
                   <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                    {user?.roles?.includes('super-admin') ? 'Super Admin' : 'Administrator'}
+                    {admin?.role === 'super-admin' ? 'Super Admin' : 'Administrator'}
                   </p>
                 </div>
                 <button
@@ -222,10 +222,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = () => {
                     </div>
                     <div className="hidden sm:block">
                       <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        {user?.firstName} {user?.lastName}
+                        {admin?.username}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {user?.email}
+                        {admin?.email}
                       </p>
                     </div>
                   </div>

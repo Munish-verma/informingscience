@@ -13,7 +13,7 @@ interface SystemStats {
 }
 
 const AdminDashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { admin } = useAuth();
   const navigate = useNavigate();
   const [systemStats, setSystemStats] = useState<SystemStats>({
     totalUsers: 1250,
@@ -33,9 +33,9 @@ const AdminDashboard: React.FC = () => {
           Admin Dashboard
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
-          Welcome back, {user?.firstName}! Manage the entire InformingScience.org platform.
+          Welcome back, {admin?.username}! Manage the entire InformingScience.org platform.
         </p>
-        {user?.roles?.includes('super-admin') && (
+        {admin?.role === 'super-admin' && (
           <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
             <Shield className="h-4 w-4 mr-1" />
             Super Administrator
@@ -315,7 +315,7 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Super Admin Features */}
-      {user?.roles?.includes('super-admin') && (
+      {admin?.role === 'super-admin' && (
         <div className="mt-8 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Super Administrator Features
