@@ -4,6 +4,7 @@ import {
   Globe, Lock, Unlock, Calendar, User, Tag, Folder, RefreshCw,
   ChevronDown, ChevronRight, Settings, Copy, History, CheckCircle
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 interface Content {
   _id: string;
@@ -43,6 +44,7 @@ interface ContentManagementProps {
 }
 
 const ContentManagement: React.FC<ContentManagementProps> = ({ onClose }) => {
+  const { token } = useAuth();
   const [contents, setContents] = useState<Content[]>([]);
   const [filteredContents, setFilteredContents] = useState<Content[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,7 +70,6 @@ const ContentManagement: React.FC<ContentManagementProps> = ({ onClose }) => {
   const fetchContents = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
       const response = await fetch('/api/admin/content', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -145,7 +146,6 @@ const ContentManagement: React.FC<ContentManagementProps> = ({ onClose }) => {
 
   const handleSaveContent = async () => {
     try {
-      const token = localStorage.getItem('token');
       const url = '/api/admin/content';
       const method = selectedContent ? 'PUT' : 'POST';
       const endpoint = selectedContent ? `${url}/${selectedContent._id}` : url;
@@ -189,7 +189,6 @@ const ContentManagement: React.FC<ContentManagementProps> = ({ onClose }) => {
     if (!window.confirm('Are you sure you want to delete this content?')) return;
 
     try {
-      const token = localStorage.getItem('token');
       const response = await fetch(`/api/admin/content/${content._id}`, {
         method: 'DELETE',
         headers: {
@@ -208,7 +207,6 @@ const ContentManagement: React.FC<ContentManagementProps> = ({ onClose }) => {
 
   const handleToggleStatus = async (content: Content, field: 'isActive' | 'isPublished') => {
     try {
-      const token = localStorage.getItem('token');
       const response = await fetch(`/api/admin/content/${content._id}/status`, {
         method: 'PUT',
         headers: {

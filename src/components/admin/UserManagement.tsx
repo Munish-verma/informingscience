@@ -4,6 +4,7 @@ import {
   Mail, Phone, MapPin, Calendar, Filter, Download, RefreshCw,
   Eye, Key, UserPlus, AlertCircle, CheckCircle, XCircle
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 interface User {
   _id: string;
@@ -28,6 +29,7 @@ interface UserManagementProps {
 }
 
 const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
+  const { token } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +57,6 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: usersPerPage.toString(),
@@ -113,7 +114,6 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
     if (!selectedUser) return;
 
     try {
-      const token = localStorage.getItem('token');
       const response = await fetch(`/api/admin/users/${selectedUser._id}`, {
         method: 'PUT',
         headers: {
@@ -136,7 +136,6 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
 
   const handleToggleUserStatus = async (user: User) => {
     try {
-      const token = localStorage.getItem('token');
       const response = await fetch(`/api/admin/users/${user._id}/status`, {
         method: 'PUT',
         headers: {
@@ -156,7 +155,6 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
 
   const handleResetPassword = async (user: User) => {
     try {
-      const token = localStorage.getItem('token');
       const response = await fetch(`/api/admin/users/${user._id}/reset-password`, {
         method: 'POST',
         headers: {
@@ -175,7 +173,6 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
 
   const handleExportUsers = async () => {
     try {
-      const token = localStorage.getItem('token');
       console.log('Export: Making request to /api/admin/users/export');
       console.log('Export: Token exists:', !!token);
       

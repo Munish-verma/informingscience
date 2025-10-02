@@ -226,10 +226,13 @@ app.post('/api/admin/login', [
     console.log('Login: Generating JWT token...');
     const token = jwt.sign(
       { 
-        id: admin._id, 
+        id: admin._id,
+        userId: admin._id, 
         username: admin.username, 
         email: admin.email, 
-        role: admin.role 
+        role: admin.role,
+        firstName: admin.username,
+        lastName: 'Admin'
       },
       JWT_SECRET,
       { expiresIn: '24h' }
@@ -1058,7 +1061,7 @@ app.put('/api/admin/conferences/:id/status', authenticateToken, requireRole(['ad
 // ==================== ADMIN CONTENT MANAGEMENT ROUTES ====================
 
 // Get All Content (Admin only)
-app.get('/api/admin/content', authenticateToken, requireRole(['administrator', 'super-admin']), async (req, res) => {
+app.get('/api/admin/content', authenticateToken, requireRole(['admin', 'administrator', 'super-admin']), async (req, res) => {
   try {
     const contents = await Content.find({})
       .populate('author.userId', 'firstName lastName email')
@@ -1073,7 +1076,7 @@ app.get('/api/admin/content', authenticateToken, requireRole(['administrator', '
 });
 
 // Create Content (Admin only)
-app.post('/api/admin/content', authenticateToken, requireRole(['administrator', 'super-admin']), [
+app.post('/api/admin/content', authenticateToken, requireRole(['admin', 'administrator', 'super-admin']), [
   body('key').trim().isLength({ min: 2 }).withMessage('Content key must be at least 2 characters'),
   body('title').trim().isLength({ min: 3 }).withMessage('Title must be at least 3 characters'),
   body('content').trim().isLength({ min: 1 }).withMessage('Content is required'),
@@ -1108,7 +1111,7 @@ app.post('/api/admin/content', authenticateToken, requireRole(['administrator', 
 });
 
 // Update Content (Admin only)
-app.put('/api/admin/content/:id', authenticateToken, requireRole(['administrator', 'super-admin']), [
+app.put('/api/admin/content/:id', authenticateToken, requireRole(['admin', 'administrator', 'super-admin']), [
   body('title').optional().trim().isLength({ min: 1 }),
   body('content').optional().trim().isLength({ min: 1 }),
   body('type').optional().isIn(['page', 'section', 'announcement', 'featured-quote', 'faq', 'about', 'news']),
@@ -1309,7 +1312,7 @@ app.put('/api/admin/content/:id', authenticateToken, requireRole(['administrator
 });
 
 // Delete Content (Admin only)
-app.delete('/api/admin/content/:id', authenticateToken, requireRole(['administrator', 'super-admin']), async (req, res) => {
+app.delete('/api/admin/content/:id', authenticateToken, requireRole(['admin', 'administrator', 'super-admin']), async (req, res) => {
   try {
     const content = await Content.findByIdAndDelete(req.params.id);
     if (!content) {
@@ -1325,7 +1328,7 @@ app.delete('/api/admin/content/:id', authenticateToken, requireRole(['administra
 });
 
 // Toggle Content Status (Admin only)
-app.put('/api/admin/content/:id/status', authenticateToken, requireRole(['administrator', 'super-admin']), async (req, res) => {
+app.put('/api/admin/content/:id/status', authenticateToken, requireRole(['admin', 'administrator', 'super-admin']), async (req, res) => {
   try {
     const { field, value } = req.body;
     const content = await Content.findById(req.params.id);
