@@ -7,8 +7,8 @@ const { body, validationResult } = require('express-validator');
 const config = require('./config');
 require('dotenv').config();
 
-import path from "path";
-import { fileURLToPath } from "url";
+const path = require("path");
+const { fileURLToPath } = require("url");
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
