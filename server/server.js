@@ -8,18 +8,15 @@ const config = require('./config');
 require('dotenv').config();
 
 const path = require("path");
-const { fileURLToPath } = require("url");
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const app = express();
 
+// Serve static frontend (CommonJS-friendly __dirname)
 app.use(express.static(path.join(__dirname, "../frontend/build")));
 
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/build/index.html"));
 });
-
-const app = express();
 const PORT = config.PORT;
 
 // Middleware
