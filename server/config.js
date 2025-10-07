@@ -7,8 +7,8 @@ module.exports = {
   // For MongoDB Atlas (cloud), use:
   // MONGODB_URI: 'mongodb+srv://username:password@cluster0.mongodb.net/informingscience?retryWrites=true&w=majority'
   
-  // For local development, use local MongoDB (auth via admin DB):
-  MONGODB_URI: process.env.MONGODB_URI || 'mongodb://admin:StrongPassword123@127.0.0.1:27017/informingscience?authSource=admin',
+  // For local development, default to no-auth local MongoDB. Override via MONGODB_URI when needed.
+  MONGODB_URI: process.env.MONGODB_URI || 'mongodb://localhost:27017/informingscience',
   
   // JWT Secret
   JWT_SECRET: process.env.JWT_SECRET || 'your-secret-key-change-in-production',

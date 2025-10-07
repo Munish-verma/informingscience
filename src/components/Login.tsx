@@ -27,7 +27,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setError('');
 
     try {
-      const response = await fetch('http://69.62.119.220/api/admin/login', {
+      const response = await fetch('https://informingscience.fyi/api/admin/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

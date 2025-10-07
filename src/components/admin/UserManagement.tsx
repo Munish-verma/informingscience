@@ -185,8 +185,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
           }
         });
       } catch (proxyError) {
-        console.log('Export: Proxy failed, trying direct connection to 69.62.119.220');
-        response = await fetch('http://69.62.119.220/api/admin/users/export', {
+        console.log('Export: Proxy failed, trying direct connection to informingscience.fyi');
+        response = await fetch('https://informingscience.fyi/api/admin/users/export', {
           headers: {
             'Authorization': `Bearer ${token}`
           }

@@ -21,7 +21,7 @@ const PORT = config.PORT;
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://69.62.119.220'],
+  origin: ['http://localhost:3000', 'http://localhost:3001', 'https://informingscience.fyi'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
