@@ -4,6 +4,8 @@ import {
   Send, Copy, History, RefreshCw, AlertCircle, CheckCircle,
   FileText, Globe, Settings, Users, Calendar, Tag
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { buildApiUrl } from '../../config/api';
 
 interface EmailTemplate {
   _id: string;
@@ -45,10 +47,22 @@ const EmailTemplateManagement: React.FC<EmailTemplateManagementProps> = ({ onClo
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
   const [editingTemplate, setEditingTemplate] = useState<Partial<EmailTemplate>>({});
   const [testEmail, setTestEmail] = useState('');
-  const [activeTab, setActiveTab] = useState<'list' | 'editor'>('list');
+  const [activeTab, setActiveTab] = useState<'list' | 'editor' | 'bulk-unsubscribe'>('list');
+  const [showBulkUnsubscribeModal, setShowBulkUnsubscribeModal] = useState(false);
+  const [subscriptionStats, setSubscriptionStats] = useState<any>(null);
+  const [bulkUnsubscribeData, setBulkUnsubscribeData] = useState({
+    templateTypes: [] as string[],
+    userFilters: {
+      roles: [] as string[],
+      accountType: '',
+      membershipStatus: '',
+      isActive: undefined as boolean | undefined
+    }
+  });
 
   useEffect(() => {
     fetchTemplates();
+    fetchSubscriptionStats();
   }, []);
 
   useEffect(() => {
@@ -59,7 +73,7 @@ const EmailTemplateManagement: React.FC<EmailTemplateManagementProps> = ({ onClo
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/admin/email-templates', {
+      const response = await fetch(buildApiUrl('/api/admin/email-templates'), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -131,7 +145,7 @@ const EmailTemplateManagement: React.FC<EmailTemplateManagementProps> = ({ onClo
   const handleSaveTemplate = async () => {
     try {
       const token = localStorage.getItem('token');
-      const url = '/api/admin/email-templates';
+      const url = buildApiUrl('/api/admin/email-templates');
       const method = selectedTemplate ? 'PUT' : 'POST';
       const endpoint = selectedTemplate ? `${url}/${selectedTemplate._id}` : url;
 
@@ -162,7 +176,7 @@ const EmailTemplateManagement: React.FC<EmailTemplateManagementProps> = ({ onClo
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/admin/email-templates/${template._id}`, {
+      const response = await fetch(buildApiUrl(`/api/admin/email-templates/${template._id}`), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -181,7 +195,7 @@ const EmailTemplateManagement: React.FC<EmailTemplateManagementProps> = ({ onClo
   const handleToggleStatus = async (template: EmailTemplate) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/admin/email-templates/${template._id}/status`, {
+      const response = await fetch(buildApiUrl(`/api/admin/email-templates/${template._id}/status`), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -203,7 +217,7 @@ const EmailTemplateManagement: React.FC<EmailTemplateManagementProps> = ({ onClo
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/admin/email-templates/${selectedTemplate._id}/test`, {
+      const response = await fetch(buildApiUrl(`/api/admin/email-templates/${selectedTemplate._id}/test`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -219,6 +233,70 @@ const EmailTemplateManagement: React.FC<EmailTemplateManagementProps> = ({ onClo
       }
     } catch (error) {
       console.error('Error sending test email:', error);
+    }
+  };
+
+  const fetchSubscriptionStats = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(buildApiUrl('/api/admin/email-templates/subscription-stats'), {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSubscriptionStats(data.stats);
+      }
+    } catch (error) {
+      console.error('Error fetching subscription stats:', error);
+    }
+  };
+
+  const handleBulkUnsubscribe = async () => {
+    if (bulkUnsubscribeData.templateTypes.length === 0) {
+      alert('Please select at least one template type to unsubscribe from');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to bulk unsubscribe users from ${bulkUnsubscribeData.templateTypes.join(', ')} emails? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(buildApiUrl('/api/admin/email-templates/bulk-unsubscribe'), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(bulkUnsubscribeData)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(`Successfully unsubscribed ${data.affectedUsers} users from ${data.templateTypes.length} email template type(s)`);
+        setShowBulkUnsubscribeModal(false);
+        setBulkUnsubscribeData({
+          templateTypes: [],
+          userFilters: {
+            roles: [],
+            accountType: '',
+            membershipStatus: '',
+            isActive: undefined
+          }
+        });
+        fetchSubscriptionStats(); // Refresh stats
+      } else {
+        const errorData = await response.json();
+        alert(`Error: ${errorData.message}`);
+      }
+    } catch (error) {
+      console.error('Error performing bulk unsubscribe:', error);
+      alert('Failed to perform bulk unsubscribe');
     }
   };
 
@@ -281,6 +359,13 @@ const EmailTemplateManagement: React.FC<EmailTemplateManagementProps> = ({ onClo
           <p className="text-gray-600 dark:text-gray-400">Manage email templates for system notifications and communications</p>
         </div>
         <div className="flex space-x-3">
+          <button
+            onClick={() => setShowBulkUnsubscribeModal(true)}
+            className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            <Users className="h-4 w-4 mr-2" />
+            Bulk Unsubscribe
+          </button>
           <button
             onClick={handleCreateTemplate}
             className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -769,6 +854,223 @@ const EmailTemplateManagement: React.FC<EmailTemplateManagementProps> = ({ onClo
                 >
                   <Send className="h-4 w-4 mr-2" />
                   Send Test
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Unsubscribe Modal */}
+      {showBulkUnsubscribeModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800">
+            <div className="mt-3">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                  Bulk Unsubscribe Users
+                </h3>
+                <button
+                  onClick={() => setShowBulkUnsubscribeModal(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+
+              {/* Subscription Statistics */}
+              {subscriptionStats && (
+                <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Current Subscription Statistics</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-600 dark:text-gray-400">Total Users:</span>
+                      <span className="ml-2 font-medium text-gray-900 dark:text-white">{subscriptionStats.totalUsers}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 dark:text-gray-400">Newsletter Subscribers:</span>
+                      <span className="ml-2 font-medium text-gray-900 dark:text-white">{subscriptionStats.newsletterSubscribers}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 dark:text-gray-400">Review Invitations:</span>
+                      <span className="ml-2 font-medium text-gray-900 dark:text-white">{subscriptionStats.reviewInvitationSubscribers}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 dark:text-gray-400">System Notifications:</span>
+                      <span className="ml-2 font-medium text-gray-900 dark:text-white">{subscriptionStats.systemNotificationSubscribers}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 dark:text-gray-400">Conference Updates:</span>
+                      <span className="ml-2 font-medium text-gray-900 dark:text-white">{subscriptionStats.conferenceUpdateSubscribers}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 dark:text-gray-400">Journal Updates:</span>
+                      <span className="ml-2 font-medium text-gray-900 dark:text-white">{subscriptionStats.journalUpdateSubscribers}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-6">
+                {/* Template Types Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                    Select Email Template Types to Unsubscribe From
+                  </label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {[
+                      { value: 'newsletter', label: 'Newsletters' },
+                      { value: 'notification', label: 'Review Invitations' },
+                      { value: 'system', label: 'System Notifications' },
+                      { value: 'conference', label: 'Conference Updates' },
+                      { value: 'journal', label: 'Journal Updates' },
+                      { value: 'user', label: 'Marketing Emails' }
+                    ].map((type) => (
+                      <label key={type.value} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={bulkUnsubscribeData.templateTypes.includes(type.value)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setBulkUnsubscribeData(prev => ({
+                                ...prev,
+                                templateTypes: [...prev.templateTypes, type.value]
+                              }));
+                            } else {
+                              setBulkUnsubscribeData(prev => ({
+                                ...prev,
+                                templateTypes: prev.templateTypes.filter(t => t !== type.value)
+                              }));
+                            }
+                          }}
+                          className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                        />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{type.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* User Filters */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                    Filter Users (Optional)
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Roles
+                      </label>
+                      <div className="space-y-2">
+                        {['reviewer', 'editor', 'editor-in-chief', 'administrator', 'super-admin'].map((role) => (
+                          <label key={role} className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              checked={bulkUnsubscribeData.userFilters.roles.includes(role)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setBulkUnsubscribeData(prev => ({
+                                    ...prev,
+                                    userFilters: {
+                                      ...prev.userFilters,
+                                      roles: [...prev.userFilters.roles, role]
+                                    }
+                                  }));
+                                } else {
+                                  setBulkUnsubscribeData(prev => ({
+                                    ...prev,
+                                    userFilters: {
+                                      ...prev.userFilters,
+                                      roles: prev.userFilters.roles.filter(r => r !== role)
+                                    }
+                                  }));
+                                }
+                              }}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-gray-700 dark:text-gray-300 capitalize">{role.replace('-', ' ')}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Account Type
+                        </label>
+                        <select
+                          value={bulkUnsubscribeData.userFilters.accountType}
+                          onChange={(e) => setBulkUnsubscribeData(prev => ({
+                            ...prev,
+                            userFilters: { ...prev.userFilters, accountType: e.target.value }
+                          }))}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                        >
+                          <option value="">All Account Types</option>
+                          <option value="colleague">Colleague</option>
+                          <option value="member">Member</option>
+                          <option value="student">Student</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Membership Status
+                        </label>
+                        <select
+                          value={bulkUnsubscribeData.userFilters.membershipStatus}
+                          onChange={(e) => setBulkUnsubscribeData(prev => ({
+                            ...prev,
+                            userFilters: { ...prev.userFilters, membershipStatus: e.target.value }
+                          }))}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                        >
+                          <option value="">All Statuses</option>
+                          <option value="active">Active</option>
+                          <option value="inactive">Inactive</option>
+                          <option value="expired">Expired</option>
+                          <option value="pending">Pending</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Account Status
+                        </label>
+                        <select
+                          value={bulkUnsubscribeData.userFilters.isActive === undefined ? '' : bulkUnsubscribeData.userFilters.isActive.toString()}
+                          onChange={(e) => setBulkUnsubscribeData(prev => ({
+                            ...prev,
+                            userFilters: { 
+                              ...prev.userFilters, 
+                              isActive: e.target.value === '' ? undefined : e.target.value === 'true'
+                            }
+                          }))}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                        >
+                          <option value="">All Accounts</option>
+                          <option value="true">Active Only</option>
+                          <option value="false">Inactive Only</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  onClick={() => setShowBulkUnsubscribeModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-500"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleBulkUnsubscribe}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
+                >
+                  Bulk Unsubscribe
                 </button>
               </div>
             </div>

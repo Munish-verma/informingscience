@@ -4,13 +4,15 @@ import {
   Key, Globe, Mail, Database, Shield, AlertCircle, CheckCircle,
   Lock, Unlock, Edit, Trash2, Plus, X, Info, AlertTriangle
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { buildApiUrl } from '../../config/api';
 
 interface SystemConfig {
   _id: string;
   key: string;
   value: any;
   type: 'string' | 'number' | 'boolean' | 'object' | 'array' | 'json';
-  category: 'email' | 'payment' | 'storage' | 'api' | 'security' | 'general' | 'notification' | 'backup' | 'analytics' | 'integration' | 'system';
+  category: 'email' | 'payment' | 'storage' | 'api' | 'security' | 'general' | 'notification' | 'backup' | 'analytics' | 'integration' | 'system' | 'reviewer' | 'editor-in-chief' | 'publisher';
   name: string;
   description?: string;
   isEncrypted: boolean;
@@ -59,7 +61,7 @@ const SystemConfiguration: React.FC<SystemConfigurationProps> = ({ onClose }) =>
   const [filteredConfigs, setFilteredConfigs] = useState<SystemConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedAccessLevel, setSelectedAccessLevel] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -75,13 +77,13 @@ const SystemConfiguration: React.FC<SystemConfigurationProps> = ({ onClose }) =>
 
   useEffect(() => {
     filterConfigs();
-  }, [configs, searchTerm, selectedCategory, selectedAccessLevel]);
+  }, [configs, searchTerm, selectedCategories, selectedAccessLevel]);
 
   const fetchConfigs = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/admin/system-config', {
+      const response = await fetch(buildApiUrl('/api/admin/system-config'), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -110,8 +112,8 @@ const SystemConfiguration: React.FC<SystemConfigurationProps> = ({ onClose }) =>
       );
     }
 
-    if (selectedCategory) {
-      filtered = filtered.filter(config => config.category === selectedCategory);
+    if (selectedCategories.length > 0) {
+      filtered = filtered.filter(config => selectedCategories.includes(config.category));
     }
 
     if (selectedAccessLevel) {
@@ -157,7 +159,7 @@ const SystemConfiguration: React.FC<SystemConfigurationProps> = ({ onClose }) =>
       }
 
       const token = localStorage.getItem('token');
-      const url = '/api/admin/system-config';
+      const url = buildApiUrl('/api/admin/system-config');
       const method = selectedConfig ? 'PUT' : 'POST';
       const endpoint = selectedConfig ? `${url}/${selectedConfig._id}` : url;
 
@@ -188,7 +190,7 @@ const SystemConfiguration: React.FC<SystemConfigurationProps> = ({ onClose }) =>
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/admin/system-config/${config._id}`, {
+      const response = await fetch(buildApiUrl(`/api/admin/system-config/${config._id}`), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -207,7 +209,7 @@ const SystemConfiguration: React.FC<SystemConfigurationProps> = ({ onClose }) =>
   const handleUpdateValue = async (config: SystemConfig, newValue: any, reason?: string) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/admin/system-config/${config._id}/value`, {
+      const response = await fetch(buildApiUrl(`/api/admin/system-config/${config._id}/value`), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -460,26 +462,42 @@ const SystemConfiguration: React.FC<SystemConfigurationProps> = ({ onClose }) =>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Category
+              Categories
             </label>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-            >
-              <option value="">All Categories</option>
-              <option value="email">Email</option>
-              <option value="payment">Payment</option>
-              <option value="storage">Storage</option>
-              <option value="api">API</option>
-              <option value="security">Security</option>
-              <option value="general">General</option>
-              <option value="notification">Notification</option>
-              <option value="backup">Backup</option>
-              <option value="analytics">Analytics</option>
-              <option value="integration">Integration</option>
-              <option value="system">System</option>
-            </select>
+            <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-white dark:bg-gray-700">
+              {[
+                { value: 'email', label: 'Email' },
+                { value: 'payment', label: 'Payment' },
+                { value: 'storage', label: 'Storage' },
+                { value: 'api', label: 'API' },
+                { value: 'security', label: 'Security' },
+                { value: 'general', label: 'General' },
+                { value: 'notification', label: 'Notification' },
+                { value: 'backup', label: 'Backup' },
+                { value: 'analytics', label: 'Analytics' },
+                { value: 'integration', label: 'Integration' },
+                { value: 'system', label: 'System' },
+                { value: 'reviewer', label: 'Reviewer' },
+                { value: 'editor-in-chief', label: 'Editor-in-Chief' },
+                { value: 'publisher', label: 'Publisher' }
+              ].map((category) => (
+                <label key={category.value} className="flex items-center space-x-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={selectedCategories.includes(category.value)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedCategories([...selectedCategories, category.value]);
+                      } else {
+                        setSelectedCategories(selectedCategories.filter(cat => cat !== category.value));
+                      }
+                    }}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-gray-700 dark:text-gray-300">{category.label}</span>
+                </label>
+              ))}
+            </div>
           </div>
 
           <div>
@@ -502,7 +520,7 @@ const SystemConfiguration: React.FC<SystemConfigurationProps> = ({ onClose }) =>
             <button
               onClick={() => {
                 setSearchTerm('');
-                setSelectedCategory('');
+                setSelectedCategories([]);
                 setSelectedAccessLevel('');
               }}
               className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"

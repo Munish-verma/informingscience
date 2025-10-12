@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { buildApiUrl } from '../config/api';
 
 interface LoginProps {
   onLogin: (token: string, admin: any) => void;
@@ -27,7 +28,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setError('');
 
     try {
-      const response = await fetch('https://informingscience.fyi/api/admin/login', {
+      const response = await fetch(buildApiUrl('/api/admin/login'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

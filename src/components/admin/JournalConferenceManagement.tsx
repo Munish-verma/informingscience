@@ -4,6 +4,8 @@ import {
   Eye, UserPlus, FileText, Globe, MapPin, Clock, CheckCircle,
   XCircle, AlertCircle, Search, Filter, Download, RefreshCw
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { buildApiUrl } from '../../config/api';
 
 interface Journal {
   _id: string;
@@ -62,6 +64,11 @@ interface Conference {
       name: string;
       email: string;
     };
+    coChairs?: Array<{
+      userId: string;
+      name: string;
+      email: string;
+    }>;
   };
   stats: {
     totalSubmissions: number;
@@ -76,6 +83,7 @@ interface JournalConferenceManagementProps {
 }
 
 const JournalConferenceManagement: React.FC<JournalConferenceManagementProps> = ({ onClose }) => {
+  const { token, admin } = useAuth();
   const [activeTab, setActiveTab] = useState<'journals' | 'conferences'>('journals');
   const [journals, setJournals] = useState<Journal[]>([]);
   const [conferences, setConferences] = useState<Conference[]>([]);
@@ -85,6 +93,15 @@ const JournalConferenceManagement: React.FC<JournalConferenceManagementProps> = 
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Journal | Conference | null>(null);
   const [editingItem, setEditingItem] = useState<Partial<Journal | Conference>>({});
+
+  // Check user permissions
+  const isAdmin = admin?.role === 'administrator' || admin?.role === 'super-admin';
+  const isEiC = admin?.role === 'editor-in-chief';
+  const isConferenceOrganizer = admin?.role === 'conference-organizer';
+  const canCreateJournals = isAdmin;
+  const canCreateConferences = isAdmin;
+  const canDeleteJournals = isAdmin;
+  const canDeleteConferences = isAdmin;
 
   useEffect(() => {
     if (activeTab === 'journals') {
@@ -97,57 +114,23 @@ const JournalConferenceManagement: React.FC<JournalConferenceManagementProps> = 
   const fetchJournals = async () => {
     try {
       setLoading(true);
-      // Mock data - in a real app, this would come from an API
-      const mockJournals: Journal[] = [
-        {
-          _id: '1',
-          name: 'Journal of Information Science',
-          shortName: 'JIS',
-          description: 'A leading journal in information science research',
-          issn: '1234-5678',
-          isActive: true,
-          isOpenForSubmissions: true,
-          editorInChief: {
-            userId: '1',
-            name: 'Dr. John Smith',
-            email: 'john.smith@example.com'
-          },
-          associateEditors: [
-            {
-              userId: '2',
-              name: 'Dr. Jane Doe',
-              email: 'jane.doe@example.com',
-              isActive: true
-            }
-          ],
-          reviewers: [
-            {
-              userId: '3',
-              name: 'Dr. Bob Johnson',
-              email: 'bob.johnson@example.com',
-              status: 'active',
-              totalReviews: 15
-            }
-          ],
-          stats: {
-            totalSubmissions: 45,
-            publishedArticles: 12,
-            rejectionRate: 0.3
-          },
-          createdAt: new Date().toISOString()
+      const response = await fetch(buildApiUrl('/api/admin/journals'), {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
-      ];
-      
-      // Try to load from localStorage first, fallback to mock data
-      const storedJournals = localStorage.getItem('admin_journals');
-      if (storedJournals) {
-        setJournals(JSON.parse(storedJournals));
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setJournals(data.journals || []);
       } else {
-        setJournals(mockJournals);
-        localStorage.setItem('admin_journals', JSON.stringify(mockJournals));
+        console.error('Failed to fetch journals');
+        setJournals([]);
       }
     } catch (error) {
       console.error('Error fetching journals:', error);
+      setJournals([]);
     } finally {
       setLoading(false);
     }
@@ -156,51 +139,23 @@ const JournalConferenceManagement: React.FC<JournalConferenceManagementProps> = 
   const fetchConferences = async () => {
     try {
       setLoading(true);
-      // Mock data - in a real app, this would come from an API
-      const mockConferences: Conference[] = [
-        {
-          _id: '1',
-          name: 'International Conference on Information Science',
-          shortName: 'ICIS 2024',
-          description: 'Annual conference on information science and technology',
-          startDate: '2024-06-15',
-          endDate: '2024-06-17',
-          location: {
-            venue: 'Convention Center',
-            city: 'New York',
-            country: 'USA',
-            isVirtual: false
-          },
-          status: 'upcoming',
-          isActive: true,
-          isOpenForRegistration: true,
-          isOpenForSubmissions: true,
-          organizingCommittee: {
-            chair: {
-              userId: '1',
-              name: 'Dr. Alice Brown',
-              email: 'alice.brown@example.com'
-            }
-          },
-          stats: {
-            totalSubmissions: 120,
-            acceptedPapers: 45,
-            totalRegistrations: 200
-          },
-          createdAt: new Date().toISOString()
+      const response = await fetch(buildApiUrl('/api/admin/conferences'), {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
-      ];
-      
-      // Try to load from localStorage first, fallback to mock data
-      const storedConferences = localStorage.getItem('admin_conferences');
-      if (storedConferences) {
-        setConferences(JSON.parse(storedConferences));
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setConferences(data.conferences || []);
       } else {
-        setConferences(mockConferences);
-        localStorage.setItem('admin_conferences', JSON.stringify(mockConferences));
+        console.error('Failed to fetch conferences');
+        setConferences([]);
       }
     } catch (error) {
       console.error('Error fetching conferences:', error);
+      setConferences([]);
     } finally {
       setLoading(false);
     }
@@ -395,15 +350,34 @@ const JournalConferenceManagement: React.FC<JournalConferenceManagementProps> = 
           <p className="text-gray-600 dark:text-gray-400">
             Manage {activeTab === 'journals' ? 'journals and editorial teams' : 'conferences and events'}
           </p>
+          {isEiC && activeTab === 'journals' && (
+            <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
+              You can only edit journals where you are the Editor-in-Chief
+            </p>
+          )}
+          {isConferenceOrganizer && activeTab === 'conferences' && (
+            <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
+              You can only edit conferences where you are the organizer
+            </p>
+          )}
         </div>
         <div className="flex space-x-3">
-          <button
-            onClick={handleCreateItem}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Create {activeTab === 'journals' ? 'Journal' : 'Conference'}
-          </button>
+          {(activeTab === 'journals' && canCreateJournals) || (activeTab === 'conferences' && canCreateConferences) ? (
+            <button
+              onClick={handleCreateItem}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create {activeTab === 'journals' ? 'Journal' : 'Conference'}
+            </button>
+          ) : (
+            <div className="text-sm text-gray-500 dark:text-gray-400 px-4 py-2">
+              {activeTab === 'journals' 
+                ? 'Only administrators can create journals' 
+                : 'Only administrators can create conferences'
+              }
+            </div>
+          )}
         </div>
       </div>
 
@@ -529,41 +503,62 @@ const JournalConferenceManagement: React.FC<JournalConferenceManagementProps> = 
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => handleEditItem(item)}
-                      className="p-2 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                      title="Edit"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => handleToggleStatus(item)}
-                      className={`p-2 ${
-                        activeTab === 'journals' 
-                          ? (item as Journal).isActive 
-                            ? 'text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300'
-                            : 'text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300'
-                          : (item as Conference).isActive
-                            ? 'text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300'
-                            : 'text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300'
-                      }`}
-                      title={activeTab === 'journals' 
-                        ? (item as Journal).isActive ? 'Deactivate' : 'Activate'
-                        : (item as Conference).isActive ? 'Deactivate' : 'Activate'
-                      }
-                    >
-                      {activeTab === 'journals' 
-                        ? (item as Journal).isActive ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />
-                        : (item as Conference).isActive ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />
-                      }
-                    </button>
-                    <button
-                      onClick={() => handleDeleteItem(item)}
-                      className="p-2 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                      title="Delete"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    {/* Edit button - available to EiC for their journals, organizers for their conferences, and admins */}
+                    {(isAdmin || 
+                      (activeTab === 'journals' && isEiC && (item as Journal).editorInChief.userId === admin?.id) ||
+                      (activeTab === 'conferences' && isConferenceOrganizer && 
+                       ((item as Conference).organizingCommittee.chair.userId === admin?.id ||
+                        (item as Conference).organizingCommittee.coChairs?.some(coChair => coChair.userId === admin?.id)))
+                    ) && (
+                      <button
+                        onClick={() => handleEditItem(item)}
+                        className="p-2 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                        title="Edit"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                    )}
+                    
+                    {/* Toggle status button - available to EiC for their journals, organizers for their conferences, and admins */}
+                    {(isAdmin || 
+                      (activeTab === 'journals' && isEiC && (item as Journal).editorInChief.userId === admin?.id) ||
+                      (activeTab === 'conferences' && isConferenceOrganizer && 
+                       ((item as Conference).organizingCommittee.chair.userId === admin?.id ||
+                        (item as Conference).organizingCommittee.coChairs?.some(coChair => coChair.userId === admin?.id)))
+                    ) && (
+                      <button
+                        onClick={() => handleToggleStatus(item)}
+                        className={`p-2 ${
+                          activeTab === 'journals' 
+                            ? (item as Journal).isActive 
+                              ? 'text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300'
+                              : 'text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300'
+                            : (item as Conference).isActive
+                              ? 'text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300'
+                              : 'text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300'
+                        }`}
+                        title={activeTab === 'journals' 
+                          ? (item as Journal).isActive ? 'Deactivate' : 'Activate'
+                          : (item as Conference).isActive ? 'Deactivate' : 'Activate'
+                        }
+                      >
+                        {activeTab === 'journals' 
+                          ? (item as Journal).isActive ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />
+                          : (item as Conference).isActive ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />
+                        }
+                      </button>
+                    )}
+                    
+                    {/* Delete button - only available to admins */}
+                    {isAdmin && (
+                      <button
+                        onClick={() => handleDeleteItem(item)}
+                        className="p-2 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                        title="Delete"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

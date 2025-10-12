@@ -38,7 +38,7 @@ const userSchema = new mongoose.Schema({
   },
   roles: [{
     type: String,
-    enum: ['reviewer', 'editor', 'editor-in-chief', 'administrator', 'super-admin']
+    enum: ['reviewer', 'editor', 'editor-in-chief', 'administrator', 'super-admin', 'conference-organizer']
   }],
   isActive: {
     type: Boolean,
@@ -89,6 +89,45 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
+  // Email subscription preferences
+  emailPreferences: {
+    newsletters: {
+      type: Boolean,
+      default: true
+    },
+    reviewInvitations: {
+      type: Boolean,
+      default: true
+    },
+    systemNotifications: {
+      type: Boolean,
+      default: true
+    },
+    conferenceUpdates: {
+      type: Boolean,
+      default: true
+    },
+    journalUpdates: {
+      type: Boolean,
+      default: true
+    },
+    marketingEmails: {
+      type: Boolean,
+      default: false
+    }
+  },
+  // Unsubscribe tokens for email templates
+  unsubscribeTokens: [{
+    templateType: {
+      type: String,
+      enum: ['system', 'journal', 'conference', 'user', 'notification', 'newsletter']
+    },
+    token: String,
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   createdAt: {
     type: Date,
     default: Date.now

@@ -135,6 +135,71 @@ const requireRole = (allowedRoles) => {
   };
 };
 
+// Middleware to check if user is EiC of a specific journal
+const requireJournalEiC = async (req, res, next) => {
+  try {
+    const journalId = req.params.id;
+    const userId = req.user.userId;
+
+    // Check if user is admin or super-admin (they can access all journals)
+    if (req.user.role === 'administrator' || req.user.role === 'super-admin') {
+      return next();
+    }
+
+    // Check if user is EiC of this specific journal
+    const journal = await Journal.findById(journalId);
+    if (!journal) {
+      return res.status(404).json({ message: 'Journal not found' });
+    }
+
+    if (journal.editorInChief.userId.toString() !== userId) {
+      return res.status(403).json({ 
+        message: 'Access denied. You can only manage journals where you are the Editor-in-Chief.' 
+      });
+    }
+
+    next();
+  } catch (error) {
+    console.error('Journal EiC check error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Middleware to check if user is conference organizer
+const requireConferenceOrganizer = async (req, res, next) => {
+  try {
+    const conferenceId = req.params.id;
+    const userId = req.user.userId;
+
+    // Check if user is admin or super-admin (they can access all conferences)
+    if (req.user.role === 'administrator' || req.user.role === 'super-admin') {
+      return next();
+    }
+
+    // Check if user is organizer of this specific conference
+    const conference = await Conference.findById(conferenceId);
+    if (!conference) {
+      return res.status(404).json({ message: 'Conference not found' });
+    }
+
+    const isOrganizer = conference.organizingCommittee.chair.userId.toString() === userId ||
+                       conference.organizingCommittee.coChairs.some(coChair => 
+                         coChair.userId.toString() === userId
+                       );
+
+    if (!isOrganizer) {
+      return res.status(403).json({ 
+        message: 'Access denied. You can only manage conferences where you are the organizer.' 
+      });
+    }
+
+    next();
+  } catch (error) {
+    console.error('Conference organizer check error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 // Routes
 
 // Admin Registration
@@ -428,6 +493,20 @@ app.put('/api/admin/users/:id/role', authenticateToken, requireRole(['administra
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // Prevent superusers from removing their own admin privileges
+    if (req.params.id === req.user.userId) {
+      const currentUser = await User.findById(req.user.userId);
+      const isCurrentUserSuperAdmin = currentUser.roles.includes('super-admin');
+      const isRemovingSuperAdmin = !roles.includes('super-admin');
+      const isRemovingAllAdminRoles = !roles.includes('super-admin') && !roles.includes('administrator');
+      
+      if (isCurrentUserSuperAdmin && (isRemovingSuperAdmin || isRemovingAllAdminRoles)) {
+        return res.status(403).json({ 
+          message: 'You cannot remove your own admin privileges. Another super-admin must do this for you.' 
+        });
+      }
+    }
+
     user.roles = roles;
     await user.save();
 
@@ -525,12 +604,124 @@ app.get('/api/admin/users/:id', authenticateToken, requireRole(['administrator',
   }
 });
 
+// Create User (Admin only)
+app.post('/api/admin/users', [
+  body('firstName').notEmpty().withMessage('First name is required'),
+  body('lastName').notEmpty().withMessage('Last name is required'),
+  body('email').isEmail().withMessage('Please enter a valid email'),
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('accountType').optional().isIn(['colleague', 'student', 'professional']).withMessage('Invalid account type'),
+  body('membershipStatus').optional().isIn(['active', 'pending', 'expired', 'cancelled']).withMessage('Invalid membership status'),
+  body('roles').optional().isArray().withMessage('Roles must be an array'),
+  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
+  body('isEmailVerified').optional().isBoolean().withMessage('isEmailVerified must be a boolean')
+], authenticateToken, requireRole(['administrator', 'super-admin']), async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const {
+      firstName,
+      lastName,
+      email,
+      password,
+      accountType = 'colleague',
+      membershipStatus = 'pending',
+      roles = [],
+      isActive = true,
+      isEmailVerified = false,
+      affiliation,
+      department,
+      position,
+      orcidId,
+      bio,
+      topicsOfInterest,
+      country,
+      city,
+      socialLinks
+    } = req.body;
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: 'User with this email already exists' });
+    }
+
+    // Hash password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // Validate roles
+    const validRoles = ['reviewer', 'editor', 'editor-in-chief', 'administrator', 'super-admin'];
+    const invalidRoles = roles.filter(role => !validRoles.includes(role));
+    if (invalidRoles.length > 0) {
+      return res.status(400).json({ 
+        message: `Invalid roles: ${invalidRoles.join(', ')}. Valid roles are: ${validRoles.join(', ')}` 
+      });
+    }
+
+    // Create new user
+    const user = new User({
+      firstName,
+      lastName,
+      email,
+      password: hashedPassword,
+      accountType,
+      membershipStatus,
+      roles,
+      isActive,
+      isEmailVerified,
+      affiliation,
+      department,
+      position,
+      orcidId,
+      bio,
+      topicsOfInterest,
+      country,
+      city,
+      socialLinks
+    });
+
+    await user.save();
+
+    // Return user without password
+    const userResponse = user.toObject();
+    delete userResponse.password;
+
+    res.status(201).json({ 
+      message: 'User created successfully',
+      user: userResponse
+    });
+
+  } catch (error) {
+    console.error('Create user error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Update User (Admin only)
 app.put('/api/admin/users/:id', authenticateToken, requireRole(['administrator', 'super-admin']), async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Prevent superusers from removing their own admin privileges
+    if (req.params.id === req.user.userId && req.body.roles) {
+      const currentUser = await User.findById(req.user.userId);
+      const isCurrentUserSuperAdmin = currentUser.roles.includes('super-admin');
+      const newRoles = req.body.roles;
+      const isRemovingSuperAdmin = !newRoles.includes('super-admin');
+      const isRemovingAllAdminRoles = !newRoles.includes('super-admin') && !newRoles.includes('administrator');
+      
+      if (isCurrentUserSuperAdmin && (isRemovingSuperAdmin || isRemovingAllAdminRoles)) {
+        return res.status(403).json({ 
+          message: 'You cannot remove your own admin privileges. Another super-admin must do this for you.' 
+        });
+      }
     }
 
     // Update allowed fields
@@ -618,6 +809,71 @@ app.post('/api/admin/users/:id/reset-password', authenticateToken, requireRole([
 
   } catch (error) {
     console.error('Reset password error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Delete User (Admin only) - with safeguards
+app.delete('/api/admin/users/:id', authenticateToken, requireRole(['administrator', 'super-admin']), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Prevent superusers from deleting themselves
+    if (req.params.id === req.user.userId) {
+      return res.status(403).json({ 
+        message: 'You cannot delete your own account. Another super-admin must do this for you.' 
+      });
+    }
+
+    // Prevent deletion of the last super-admin
+    if (user.roles.includes('super-admin')) {
+      const superAdminCount = await User.countDocuments({ roles: 'super-admin' });
+      if (superAdminCount <= 1) {
+        return res.status(403).json({ 
+          message: 'Cannot delete the last super-admin account. At least one super-admin must remain.' 
+        });
+      }
+    }
+
+    // Check if user has any critical associations before deletion
+    const hasSubmissions = await Submission.countDocuments({ authorId: req.params.id });
+    const hasReviews = await Review.countDocuments({ reviewerId: req.params.id });
+    const hasJournals = await Journal.countDocuments({ 
+      $or: [
+        { 'editorInChief.userId': req.params.id },
+        { 'associateEditors.userId': req.params.id },
+        { 'reviewers.userId': req.params.id }
+      ]
+    });
+
+    if (hasSubmissions > 0 || hasReviews > 0 || hasJournals > 0) {
+      return res.status(403).json({ 
+        message: 'Cannot delete user with existing submissions, reviews, or journal associations. Consider deactivating instead.',
+        associations: {
+          submissions: hasSubmissions,
+          reviews: hasReviews,
+          journals: hasJournals
+        }
+      });
+    }
+
+    await User.findByIdAndDelete(req.params.id);
+
+    res.json({ 
+      message: 'User deleted successfully',
+      deletedUser: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email
+      }
+    });
+
+  } catch (error) {
+    console.error('Delete user error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -847,10 +1103,17 @@ app.get('/api/admin/users/export', authenticateToken, requireRole(['administrato
 
 // ==================== ADMIN JOURNAL MANAGEMENT ROUTES ====================
 
-// Get All Journals (Admin only)
-app.get('/api/admin/journals', authenticateToken, requireRole(['administrator', 'super-admin']), async (req, res) => {
+// Get All Journals (Admin only) or Assigned Journals (EiC only)
+app.get('/api/admin/journals', authenticateToken, requireRole(['administrator', 'super-admin', 'editor-in-chief']), async (req, res) => {
   try {
-    const journals = await Journal.find({})
+    let query = {};
+    
+    // If user is EiC, only show journals where they are the EiC
+    if (req.user.role === 'editor-in-chief') {
+      query = { 'editorInChief.userId': req.user.userId };
+    }
+
+    const journals = await Journal.find(query)
       .populate('editorInChief.userId', 'firstName lastName email')
       .populate('associateEditors.userId', 'firstName lastName email')
       .populate('reviewers.userId', 'firstName lastName email')
@@ -889,8 +1152,8 @@ app.post('/api/admin/journals', authenticateToken, requireRole(['administrator',
   }
 });
 
-// Update Journal (Admin only)
-app.put('/api/admin/journals/:id', authenticateToken, requireRole(['administrator', 'super-admin']), async (req, res) => {
+// Update Journal (Admin only or EiC of that journal)
+app.put('/api/admin/journals/:id', authenticateToken, requireRole(['administrator', 'super-admin', 'editor-in-chief']), requireJournalEiC, async (req, res) => {
   try {
     const journal = await Journal.findByIdAndUpdate(
       req.params.id,
@@ -929,8 +1192,8 @@ app.delete('/api/admin/journals/:id', authenticateToken, requireRole(['administr
   }
 });
 
-// Toggle Journal Status (Admin only)
-app.put('/api/admin/journals/:id/status', authenticateToken, requireRole(['administrator', 'super-admin']), async (req, res) => {
+// Toggle Journal Status (Admin only or EiC of that journal)
+app.put('/api/admin/journals/:id/status', authenticateToken, requireRole(['administrator', 'super-admin', 'editor-in-chief']), requireJournalEiC, async (req, res) => {
   try {
     const { isActive } = req.body;
     const journal = await Journal.findById(req.params.id);
@@ -957,10 +1220,22 @@ app.put('/api/admin/journals/:id/status', authenticateToken, requireRole(['admin
 
 // ==================== ADMIN CONFERENCE MANAGEMENT ROUTES ====================
 
-// Get All Conferences (Admin only)
-app.get('/api/admin/conferences', authenticateToken, requireRole(['administrator', 'super-admin']), async (req, res) => {
+// Get All Conferences (Admin only) or Assigned Conferences (Organizer only)
+app.get('/api/admin/conferences', authenticateToken, requireRole(['administrator', 'super-admin', 'conference-organizer']), async (req, res) => {
   try {
-    const conferences = await Conference.find({})
+    let query = {};
+    
+    // If user is conference organizer, only show conferences where they are the organizer
+    if (req.user.role === 'conference-organizer') {
+      query = {
+        $or: [
+          { 'organizingCommittee.chair.userId': req.user.userId },
+          { 'organizingCommittee.coChairs.userId': req.user.userId }
+        ]
+      };
+    }
+
+    const conferences = await Conference.find(query)
       .populate('organizingCommittee.chair.userId', 'firstName lastName email')
       .populate('organizingCommittee.coChairs.userId', 'firstName lastName email')
       .populate('organizingCommittee.members.userId', 'firstName lastName email')
@@ -1001,8 +1276,8 @@ app.post('/api/admin/conferences', authenticateToken, requireRole(['administrato
   }
 });
 
-// Update Conference (Admin only)
-app.put('/api/admin/conferences/:id', authenticateToken, requireRole(['administrator', 'super-admin']), async (req, res) => {
+// Update Conference (Admin only or Organizer of that conference)
+app.put('/api/admin/conferences/:id', authenticateToken, requireRole(['administrator', 'super-admin', 'conference-organizer']), requireConferenceOrganizer, async (req, res) => {
   try {
     const conference = await Conference.findByIdAndUpdate(
       req.params.id,
@@ -1041,8 +1316,8 @@ app.delete('/api/admin/conferences/:id', authenticateToken, requireRole(['admini
   }
 });
 
-// Toggle Conference Status (Admin only)
-app.put('/api/admin/conferences/:id/status', authenticateToken, requireRole(['administrator', 'super-admin']), async (req, res) => {
+// Toggle Conference Status (Admin only or Organizer of that conference)
+app.put('/api/admin/conferences/:id/status', authenticateToken, requireRole(['administrator', 'super-admin', 'conference-organizer']), requireConferenceOrganizer, async (req, res) => {
   try {
     const { isActive } = req.body;
     const conference = await Conference.findById(req.params.id);
@@ -1509,6 +1784,125 @@ app.post('/api/admin/email-templates/:id/test', authenticateToken, requireRole([
   }
 });
 
+// Bulk Unsubscribe Users from Email Templates (Admin only)
+app.post('/api/admin/email-templates/bulk-unsubscribe', authenticateToken, requireRole(['administrator', 'super-admin']), async (req, res) => {
+  try {
+    const { templateTypes, userIds, userFilters } = req.body;
+    
+    if (!templateTypes || !Array.isArray(templateTypes) || templateTypes.length === 0) {
+      return res.status(400).json({ message: 'Template types are required' });
+    }
+
+    let query = {};
+    let affectedUsers = 0;
+
+    // Build query based on provided filters
+    if (userIds && Array.isArray(userIds) && userIds.length > 0) {
+      query._id = { $in: userIds };
+    } else if (userFilters) {
+      // Apply filters like role, accountType, etc.
+      if (userFilters.roles && userFilters.roles.length > 0) {
+        query.roles = { $in: userFilters.roles };
+      }
+      if (userFilters.accountType) {
+        query.accountType = userFilters.accountType;
+      }
+      if (userFilters.membershipStatus) {
+        query.membershipStatus = userFilters.membershipStatus;
+      }
+      if (userFilters.isActive !== undefined) {
+        query.isActive = userFilters.isActive;
+      }
+    } else {
+      return res.status(400).json({ message: 'Either userIds or userFilters must be provided' });
+    }
+
+    // Update email preferences for matching users
+    const updatePromises = templateTypes.map(templateType => {
+      const updateField = `emailPreferences.${getEmailPreferenceField(templateType)}`;
+      return User.updateMany(query, { $set: { [updateField]: false } });
+    });
+
+    const results = await Promise.all(updatePromises);
+    affectedUsers = results[0].modifiedCount;
+
+    // Log the bulk unsubscribe action
+    console.log(`Bulk unsubscribe: ${affectedUsers} users unsubscribed from ${templateTypes.join(', ')} emails`);
+
+    res.json({
+      message: `Successfully unsubscribed ${affectedUsers} users from ${templateTypes.length} email template type(s)`,
+      affectedUsers,
+      templateTypes,
+      query
+    });
+
+  } catch (error) {
+    console.error('Bulk unsubscribe error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get Email Subscription Statistics (Admin only)
+app.get('/api/admin/email-templates/subscription-stats', authenticateToken, requireRole(['administrator', 'super-admin']), async (req, res) => {
+  try {
+    const stats = await User.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalUsers: { $sum: 1 },
+          newsletterSubscribers: {
+            $sum: { $cond: ['$emailPreferences.newsletters', 1, 0] }
+          },
+          reviewInvitationSubscribers: {
+            $sum: { $cond: ['$emailPreferences.reviewInvitations', 1, 0] }
+          },
+          systemNotificationSubscribers: {
+            $sum: { $cond: ['$emailPreferences.systemNotifications', 1, 0] }
+          },
+          conferenceUpdateSubscribers: {
+            $sum: { $cond: ['$emailPreferences.conferenceUpdates', 1, 0] }
+          },
+          journalUpdateSubscribers: {
+            $sum: { $cond: ['$emailPreferences.journalUpdates', 1, 0] }
+          },
+          marketingEmailSubscribers: {
+            $sum: { $cond: ['$emailPreferences.marketingEmails', 1, 0] }
+          }
+        }
+      }
+    ]);
+
+    const result = stats[0] || {
+      totalUsers: 0,
+      newsletterSubscribers: 0,
+      reviewInvitationSubscribers: 0,
+      systemNotificationSubscribers: 0,
+      conferenceUpdateSubscribers: 0,
+      journalUpdateSubscribers: 0,
+      marketingEmailSubscribers: 0
+    };
+
+    res.json({ stats: result });
+
+  } catch (error) {
+    console.error('Get subscription stats error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Helper function to map template types to email preference fields
+function getEmailPreferenceField(templateType) {
+  const mapping = {
+    'newsletter': 'newsletters',
+    'notification': 'reviewInvitations',
+    'system': 'systemNotifications',
+    'conference': 'conferenceUpdates',
+    'journal': 'journalUpdates',
+    'user': 'marketingEmails'
+  };
+  return mapping[templateType] || 'newsletters';
+}
+
 // ==================== ADMIN SYSTEM CONFIGURATION ROUTES ====================
 
 // Get All System Configurations (Admin only)
@@ -1530,7 +1924,7 @@ app.post('/api/admin/system-config', authenticateToken, requireRole(['administra
   body('key').trim().isLength({ min: 2 }).withMessage('Config key must be at least 2 characters'),
   body('name').trim().isLength({ min: 3 }).withMessage('Config name must be at least 3 characters'),
   body('type').isIn(['string', 'number', 'boolean', 'object', 'array', 'json']).withMessage('Invalid config type'),
-  body('category').isIn(['email', 'payment', 'storage', 'api', 'security', 'general', 'notification', 'backup', 'analytics', 'integration', 'system']).withMessage('Invalid config category')
+  body('category').isIn(['email', 'payment', 'storage', 'api', 'security', 'general', 'notification', 'backup', 'analytics', 'integration', 'system', 'reviewer', 'editor-in-chief', 'publisher']).withMessage('Invalid config category')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -1560,8 +1954,18 @@ app.post('/api/admin/system-config', authenticateToken, requireRole(['administra
 });
 
 // Update System Configuration (Admin only)
-app.put('/api/admin/system-config/:id', authenticateToken, requireRole(['administrator', 'super-admin']), async (req, res) => {
+app.put('/api/admin/system-config/:id', authenticateToken, requireRole(['administrator', 'super-admin']), [
+  body('key').optional().trim().isLength({ min: 2 }).withMessage('Config key must be at least 2 characters'),
+  body('name').optional().trim().isLength({ min: 3 }).withMessage('Config name must be at least 3 characters'),
+  body('type').optional().isIn(['string', 'number', 'boolean', 'object', 'array', 'json']).withMessage('Invalid config type'),
+  body('category').optional().isIn(['email', 'payment', 'storage', 'api', 'security', 'general', 'notification', 'backup', 'analytics', 'integration', 'system', 'reviewer', 'editor-in-chief', 'publisher']).withMessage('Invalid config category')
+], async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
     const config = await SystemConfig.findById(req.params.id);
     if (!config) {
       return res.status(404).json({ message: 'System configuration not found' });

@@ -5,13 +5,14 @@ import {
   Eye, Key, UserPlus, AlertCircle, CheckCircle, XCircle
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { buildApiUrl } from '../../config/api';
 
 interface User {
   _id: string;
   firstName: string;
   lastName: string;
   email: string;
-  accountType: 'colleague' | 'member';
+  accountType: 'colleague' | 'member' | 'student' | 'professional';
   membershipStatus: 'active' | 'expired' | 'pending' | 'cancelled';
   membershipExpiryDate?: string;
   isActive: boolean;
@@ -22,6 +23,18 @@ interface User {
   createdAt: string;
   lastLogin?: string;
   topicsOfInterest?: string[];
+}
+
+interface CreateUserData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  accountType: 'colleague' | 'student' | 'professional';
+  membershipStatus: 'active' | 'pending' | 'expired' | 'cancelled';
+  roles: string[];
+  isActive: boolean;
+  isEmailVerified: boolean;
 }
 
 interface UserManagementProps {
@@ -42,7 +55,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingUser, setEditingUser] = useState<Partial<User>>({});
+  const [creatingUser, setCreatingUser] = useState<Partial<CreateUserData>>({});
 
   const usersPerPage = 10;
 
@@ -65,7 +80,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
         ...(selectedAccountType && { accountType: selectedAccountType })
       });
 
-      const response = await fetch(`/api/admin/users?${params}`, {
+      const response = await fetch(buildApiUrl(`/api/admin/users?${params}`), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -99,6 +114,21 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
     setFilteredUsers(filtered);
   };
 
+  const handleCreateUser = () => {
+    setCreatingUser({
+      firstName: '',
+      lastName: '',
+      email: '',
+      password: '',
+      accountType: 'colleague',
+      membershipStatus: 'pending',
+      roles: [],
+      isActive: true,
+      isEmailVerified: false
+    });
+    setShowCreateModal(true);
+  };
+
   const handleEditUser = (user: User) => {
     setSelectedUser(user);
     setEditingUser(user);
@@ -114,7 +144,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
     if (!selectedUser) return;
 
     try {
-      const response = await fetch(`/api/admin/users/${selectedUser._id}`, {
+      const response = await fetch(buildApiUrl(`/api/admin/users/${selectedUser._id}`), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -134,9 +164,40 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
     }
   };
 
+  const handleSaveNewUser = async () => {
+    if (!creatingUser.firstName || !creatingUser.lastName || !creatingUser.email || !creatingUser.password) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      const response = await fetch(buildApiUrl('/api/admin/users'), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(creatingUser)
+      });
+
+      if (response.ok) {
+        await fetchUsers();
+        setShowCreateModal(false);
+        setCreatingUser({});
+        alert('User created successfully');
+      } else {
+        const errorData = await response.json();
+        alert(`Error: ${errorData.message}`);
+      }
+    } catch (error) {
+      console.error('Error creating user:', error);
+      alert('Failed to create user');
+    }
+  };
+
   const handleToggleUserStatus = async (user: User) => {
     try {
-      const response = await fetch(`/api/admin/users/${user._id}/status`, {
+      const response = await fetch(buildApiUrl(`/api/admin/users/${user._id}/status`), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -155,7 +216,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
 
   const handleResetPassword = async (user: User) => {
     try {
-      const response = await fetch(`/api/admin/users/${user._id}/reset-password`, {
+      const response = await fetch(buildApiUrl(`/api/admin/users/${user._id}/reset-password`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -171,6 +232,33 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
     }
   };
 
+  const handleDeleteUser = async (user: User) => {
+    if (!window.confirm(`Are you sure you want to delete ${user.firstName} ${user.lastName}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(buildApiUrl(`/api/admin/users/${user._id}`), {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        await fetchUsers();
+        alert('User deleted successfully');
+      } else {
+        const errorData = await response.json();
+        alert(`Error: ${errorData.message}`);
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      alert('Failed to delete user');
+    }
+  };
+
   const handleExportUsers = async () => {
     try {
       console.log('Export: Making request to /api/admin/users/export');
@@ -179,14 +267,14 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
       // Try the proxy first, if it fails, try direct connection
       let response;
       try {
-        response = await fetch('/api/admin/users/export', {
+        response = await fetch(buildApiUrl('/api/admin/users/export'), {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
       } catch (proxyError) {
         console.log('Export: Proxy failed, trying direct connection to informingscience.fyi');
-        response = await fetch('https://informingscience.fyi/api/admin/users/export', {
+        response = await fetch(buildApiUrl('/api/admin/users/export'), {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -270,6 +358,13 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
         </div>
         <div className="flex space-x-3">
           <button
+            onClick={handleCreateUser}
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Add User
+          </button>
+          <button
             onClick={handleExportUsers}
             className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
           >
@@ -278,7 +373,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
           </button>
           <button
             onClick={fetchUsers}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
@@ -482,6 +577,13 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                         >
                           {user.isActive ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
                         </button>
+                        <button
+                          onClick={() => handleDeleteUser(user)}
+                          className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                          title="Delete User"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -621,26 +723,37 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                     Roles
                   </label>
                   <div className="space-y-2">
-                    {['reviewer', 'editor', 'editor-in-chief', 'administrator', 'super-admin'].map((role) => (
-                      <label key={role} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={editingUser.roles?.includes(role) || false}
-                          onChange={(e) => {
-                            const roles = editingUser.roles || [];
-                            if (e.target.checked) {
-                              setEditingUser({...editingUser, roles: [...roles, role]});
-                            } else {
-                              setEditingUser({...editingUser, roles: roles.filter(r => r !== role)});
-                            }
-                          }}
-                          className="mr-2"
-                        />
-                        <span className="text-sm text-gray-700 dark:text-gray-300 capitalize">
-                          {role.replace('-', ' ')}
-                        </span>
-                      </label>
-                    ))}
+                    {['reviewer', 'editor', 'editor-in-chief', 'administrator', 'super-admin'].map((role) => {
+                      const isCurrentUser = selectedUser?._id === localStorage.getItem('userId');
+                      const isAdminRole = role === 'administrator' || role === 'super-admin';
+                      const isCurrentUserSuperAdmin = selectedUser?.roles?.includes('super-admin');
+                      const isRemovingAdminRole = isAdminRole && !editingUser.roles?.includes(role);
+                      
+                      const isDisabled = isCurrentUser && isCurrentUserSuperAdmin && isRemovingAdminRole;
+                      
+                      return (
+                        <label key={role} className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={editingUser.roles?.includes(role) || false}
+                            disabled={isDisabled}
+                            onChange={(e) => {
+                              const roles = editingUser.roles || [];
+                              if (e.target.checked) {
+                                setEditingUser({...editingUser, roles: [...roles, role]});
+                              } else {
+                                setEditingUser({...editingUser, roles: roles.filter(r => r !== role)});
+                              }
+                            }}
+                            className="mr-2"
+                          />
+                          <span className={`text-sm capitalize ${isDisabled ? 'text-gray-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                            {role.replace('-', ' ')}
+                            {isDisabled && ' (Cannot remove your own admin privileges)'}
+                          </span>
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -765,6 +878,175 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                   className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-500"
                 >
                   Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create User Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] flex flex-col">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Create New User</h2>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    First Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={creatingUser.firstName || ''}
+                    onChange={(e) => setCreatingUser({...creatingUser, firstName: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter first name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Last Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={creatingUser.lastName || ''}
+                    onChange={(e) => setCreatingUser({...creatingUser, lastName: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter last name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Email *
+                  </label>
+                  <input
+                    type="email"
+                    value={creatingUser.email || ''}
+                    onChange={(e) => setCreatingUser({...creatingUser, email: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter email address"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Password *
+                  </label>
+                  <input
+                    type="password"
+                    value={creatingUser.password || ''}
+                    onChange={(e) => setCreatingUser({...creatingUser, password: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter password"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Account Type
+                  </label>
+                  <select
+                    value={creatingUser.accountType || 'colleague'}
+                    onChange={(e) => setCreatingUser({...creatingUser, accountType: e.target.value as 'colleague' | 'student' | 'professional'})}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="colleague">Colleague</option>
+                    <option value="student">Student</option>
+                    <option value="professional">Professional</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Membership Status
+                  </label>
+                  <select
+                    value={creatingUser.membershipStatus || 'pending'}
+                    onChange={(e) => setCreatingUser({...creatingUser, membershipStatus: e.target.value as 'active' | 'pending' | 'expired' | 'cancelled'})}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="active">Active</option>
+                    <option value="expired">Expired</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Roles
+                  </label>
+                  <div className="space-y-2">
+                    {['reviewer', 'editor', 'editor-in-chief', 'administrator', 'super-admin'].map((role) => (
+                      <label key={role} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={creatingUser.roles?.includes(role) || false}
+                          onChange={(e) => {
+                            const roles = creatingUser.roles || [];
+                            if (e.target.checked) {
+                              setCreatingUser({...creatingUser, roles: [...roles, role]});
+                            } else {
+                              setCreatingUser({...creatingUser, roles: roles.filter(r => r !== role)});
+                            }
+                          }}
+                          className="mr-2"
+                        />
+                        <span className="text-sm capitalize text-gray-700 dark:text-gray-300">
+                          {role.replace('-', ' ')}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="isActive"
+                    checked={creatingUser.isActive || false}
+                    onChange={(e) => setCreatingUser({...creatingUser, isActive: e.target.checked})}
+                    className="mr-2"
+                  />
+                  <label htmlFor="isActive" className="text-sm text-gray-700 dark:text-gray-300">
+                    Active User
+                  </label>
+                </div>
+
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="isEmailVerified"
+                    checked={creatingUser.isEmailVerified || false}
+                    onChange={(e) => setCreatingUser({...creatingUser, isEmailVerified: e.target.checked})}
+                    className="mr-2"
+                  />
+                  <label htmlFor="isEmailVerified" className="text-sm text-gray-700 dark:text-gray-300">
+                    Email Verified
+                  </label>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-500"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveNewUser}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                >
+                  Create User
                 </button>
               </div>
             </div>

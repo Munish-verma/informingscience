@@ -27,7 +27,8 @@ const systemConfigSchema = new mongoose.Schema({
     type: String,
     enum: [
       'email', 'payment', 'storage', 'api', 'security', 'general', 
-      'notification', 'backup', 'analytics', 'integration', 'system'
+      'notification', 'backup', 'analytics', 'integration', 'system',
+      'reviewer', 'editor-in-chief', 'publisher'
     ],
     required: true
   },

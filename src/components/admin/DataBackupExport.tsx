@@ -4,6 +4,8 @@ import {
   Users, BookOpen, Mail, Settings, AlertCircle, CheckCircle,
   Clock, HardDrive, Archive, Trash2, Eye, Play, Pause, Square
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { buildApiUrl } from '../../config/api';
 
 interface BackupJob {
   _id: string;
@@ -60,7 +62,7 @@ const DataBackupExport: React.FC<DataBackupExportProps> = ({ onClose }) => {
   const fetchBackupJobs = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/admin/backup/jobs', {
+      const response = await fetch(buildApiUrl('/api/admin/backup/jobs'), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -118,7 +120,7 @@ const DataBackupExport: React.FC<DataBackupExportProps> = ({ onClose }) => {
   const fetchExportJobs = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/admin/export/jobs', {
+      const response = await fetch(buildApiUrl('/api/admin/export/jobs'), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -140,7 +142,7 @@ const DataBackupExport: React.FC<DataBackupExportProps> = ({ onClose }) => {
             progress: 100,
             recordCount: 1250,
             fileSize: 512000,
-            downloadUrl: '/api/admin/export/download/1',
+            downloadUrl: buildApiUrl('/api/admin/export/download/1'),
             createdAt: new Date(Date.now() - 1800000).toISOString(),
             completedAt: new Date(Date.now() - 1800000 + 120000).toISOString()
           },
@@ -172,7 +174,7 @@ const DataBackupExport: React.FC<DataBackupExportProps> = ({ onClose }) => {
   const handleCreateBackup = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/admin/backup/create', {
+      const response = await fetch(buildApiUrl('/api/admin/backup/create'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -194,7 +196,7 @@ const DataBackupExport: React.FC<DataBackupExportProps> = ({ onClose }) => {
   const handleCreateExport = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/admin/export/create', {
+      const response = await fetch(buildApiUrl('/api/admin/export/create'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -216,7 +218,7 @@ const DataBackupExport: React.FC<DataBackupExportProps> = ({ onClose }) => {
   const handleDownloadBackup = async (backupId: string) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/admin/backup/download/${backupId}`, {
+      const response = await fetch(buildApiUrl(`/api/admin/backup/download/${backupId}`), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -241,7 +243,7 @@ const DataBackupExport: React.FC<DataBackupExportProps> = ({ onClose }) => {
   const handleDownloadExport = async (exportId: string) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/admin/export/download/${exportId}`, {
+      const response = await fetch(buildApiUrl(`/api/admin/export/download/${exportId}`), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -266,7 +268,7 @@ const DataBackupExport: React.FC<DataBackupExportProps> = ({ onClose }) => {
   const handleCancelJob = async (jobId: string, type: 'backup' | 'export') => {
     try {
       const token = localStorage.getItem('token');
-      const endpoint = type === 'backup' ? `/api/admin/backup/cancel/${jobId}` : `/api/admin/export/cancel/${jobId}`;
+      const endpoint = type === 'backup' ? buildApiUrl(`/api/admin/backup/cancel/${jobId}`) : buildApiUrl(`/api/admin/export/cancel/${jobId}`);
       
       const response = await fetch(endpoint, {
         method: 'POST',

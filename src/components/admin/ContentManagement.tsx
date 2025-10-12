@@ -5,6 +5,7 @@ import {
   ChevronDown, ChevronRight, Settings, Copy, History, CheckCircle
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { buildApiUrl } from '../../config/api';
 
 interface Content {
   _id: string;
@@ -70,7 +71,7 @@ const ContentManagement: React.FC<ContentManagementProps> = ({ onClose }) => {
   const fetchContents = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/content', {
+      const response = await fetch(buildApiUrl('/api/admin/content'), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -146,7 +147,7 @@ const ContentManagement: React.FC<ContentManagementProps> = ({ onClose }) => {
 
   const handleSaveContent = async () => {
     try {
-      const url = '/api/admin/content';
+      const url = buildApiUrl('/api/admin/content');
       const method = selectedContent ? 'PUT' : 'POST';
       const endpoint = selectedContent ? `${url}/${selectedContent._id}` : url;
 
@@ -189,7 +190,7 @@ const ContentManagement: React.FC<ContentManagementProps> = ({ onClose }) => {
     if (!window.confirm('Are you sure you want to delete this content?')) return;
 
     try {
-      const response = await fetch(`/api/admin/content/${content._id}`, {
+      const response = await fetch(buildApiUrl(`/api/admin/content/${content._id}`), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -207,7 +208,7 @@ const ContentManagement: React.FC<ContentManagementProps> = ({ onClose }) => {
 
   const handleToggleStatus = async (content: Content, field: 'isActive' | 'isPublished') => {
     try {
-      const response = await fetch(`/api/admin/content/${content._id}/status`, {
+      const response = await fetch(buildApiUrl(`/api/admin/content/${content._id}/status`), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

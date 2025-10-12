@@ -5,6 +5,8 @@ import {
   UserCheck, UserX, BookOpen, Mail, Database, Globe, Clock
 } from 'lucide-react';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
+import { useAuth } from '../../context/AuthContext';
+import { buildApiUrl } from '../../config/api';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -94,7 +96,7 @@ const AnalyticsReports: React.FC<AnalyticsReportsProps> = ({ onClose }) => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/admin/analytics?range=${dateRange}`, {
+      const response = await fetch(buildApiUrl(`/api/admin/analytics?range=${dateRange}`), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -190,7 +192,7 @@ const AnalyticsReports: React.FC<AnalyticsReportsProps> = ({ onClose }) => {
   const handleExportData = async (format: 'csv' | 'json') => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/admin/analytics/export?format=${format}&range=${dateRange}`, {
+      const response = await fetch(buildApiUrl(`/api/admin/analytics/export?format=${format}&range=${dateRange}`), {
         headers: {
           'Authorization': `Bearer ${token}`
         }

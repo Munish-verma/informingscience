@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { buildApiUrl } from '../config/api';
 
 const LoginPage: React.FC = () => {
   const { login } = useAuth();
@@ -25,7 +26,7 @@ const LoginPage: React.FC = () => {
 
     try {
       // Call the backend login API
-      const response = await fetch('https://informingscience.fyi/api/admin/login', {
+      const response = await fetch(buildApiUrl('/api/admin/login'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
